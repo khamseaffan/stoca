@@ -1,4 +1,4 @@
--- AIsle — Supabase Schema
+-- Stoca — Supabase Schema
 -- PostgreSQL 15 + pgvector
 
 CREATE EXTENSION IF NOT EXISTS "vector";

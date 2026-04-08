@@ -1,8 +1,8 @@
-# AIsle
+# Stoca
 
 **The AI store manager that replaces an entire team.**
 
-AIsle is an AI-native local commerce platform. One store owner, zero tech skills needed — manage everything through conversation.
+Stoca is an AI-native local commerce platform. One store owner, zero tech skills needed — manage everything through conversation.
 
 ## What It Does
 
@@ -15,7 +15,6 @@ AIsle is an AI-native local commerce platform. One store owner, zero tech skills
 - **AI**: Vercel AI SDK + Anthropic Claude (streaming chat with tool-calling)
 - **Database**: Supabase (PostgreSQL + pgvector + Auth + Storage + Realtime)
 - **Tool Service**: Python / FastAPI (vision processing, semantic search, catalog enrichment)
-- **Payments**: Stripe (PaymentIntents + Connect)
 - **Analytics**: PostHog
 
 ## Development
