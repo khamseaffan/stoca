@@ -1,0 +1,57 @@
+# Java / Spring Boot
+*.class
+*.jar
+*.war
+*.ear
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.gradle/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+
+# Node / React
+node_modules/
+.next/
+dist/
+.cache/
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+docker-compose.override.yml
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# OS
+Thumbs.db
+CLAUDE.md
+docs/
