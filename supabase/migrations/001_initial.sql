@@ -1,4 +1,4 @@
--- Home Store v2 — Supabase Schema
+-- AIsle — Supabase Schema
 -- PostgreSQL 15 + pgvector
 
 CREATE EXTENSION IF NOT EXISTS "vector";
