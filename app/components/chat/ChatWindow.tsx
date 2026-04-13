@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useChat } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
 import { Bot, SendHorizontal, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ChatMessage } from './ChatMessage'
@@ -22,12 +23,14 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const transport = useMemo(
+    () => new DefaultChatTransport({ api: '/api/ai/chat', body: { storeId } }),
+    [storeId],
+  )
+
   const { messages, sendMessage, status } = useChat({
     id: `store-${storeId}`,
-    transport: {
-      api: '/api/ai/chat',
-      body: { storeId },
-    } as never,
+    transport,
   })
 
   const isLoading = status === 'submitted' || status === 'streaming'
