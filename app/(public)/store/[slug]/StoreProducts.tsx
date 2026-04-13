@@ -41,7 +41,7 @@ export function StoreProducts({ products, storeId }: StoreProductsProps) {
       } = await supabase.auth.getUser()
 
       if (!user) {
-        window.location.href = '/auth/login'
+        window.location.href = '/login'
         return
       }
 

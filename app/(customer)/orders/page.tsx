@@ -40,7 +40,7 @@ export default async function OrdersPage() {
           title="Sign in to view orders"
           description="You need to be logged in to see your order history."
           action={
-            <Link href="/auth/login">
+            <Link href="/login">
               <Button>Sign In</Button>
             </Link>
           }

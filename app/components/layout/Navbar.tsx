@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search, ShoppingCart, Menu, X, ChevronDown, User, LayoutDashboard, Package, LogOut } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { getInitials } from '@/lib/utils'
 import type { Profile } from '@/types'
@@ -156,9 +157,12 @@ export function Navbar({ user, cartCount }: NavbarProps) {
                   </Link>
                   <div className="border-t border-secondary-100">
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         setUserMenuOpen(false)
-                        router.push('/auth/signout')
+                        const supabase = createClient()
+                        await supabase.auth.signOut()
+                        router.push('/login')
+                        router.refresh()
                       }}
                       className="flex w-full items-center gap-2 px-4 py-2 text-sm text-secondary-700 transition-colors hover:bg-secondary-50"
                     >
@@ -172,13 +176,13 @@ export function Navbar({ user, cartCount }: NavbarProps) {
           ) : (
             <div className="hidden items-center gap-1 md:flex">
               <Link
-                href="/auth/login"
+                href="/login"
                 className="rounded-lg px-3 py-2 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-100"
               >
                 Login
               </Link>
               <Link
-                href="/auth/register"
+                href="/register"
                 className="rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
               >
                 Register
@@ -259,7 +263,7 @@ export function Navbar({ user, cartCount }: NavbarProps) {
                     <button
                       onClick={() => {
                         setMobileMenuOpen(false)
-                        router.push('/auth/signout')
+                        router.push('/login')
                       }}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-secondary-700 transition-colors hover:bg-secondary-50"
                     >
@@ -271,7 +275,7 @@ export function Navbar({ user, cartCount }: NavbarProps) {
               ) : (
                 <div className="flex flex-col gap-2 pt-1">
                   <Link
-                    href="/auth/login"
+                    href="/login"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
                   >
@@ -279,7 +283,7 @@ export function Navbar({ user, cartCount }: NavbarProps) {
                     Login
                   </Link>
                   <Link
-                    href="/auth/register"
+                    href="/register"
                     onClick={() => setMobileMenuOpen(false)}
                     className="rounded-lg bg-primary-600 px-3 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-primary-700"
                   >

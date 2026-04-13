@@ -58,7 +58,7 @@ export default async function HomePage() {
                   Browse Stores
                 </Button>
               </Link>
-              <Link href="/auth/register">
+              <Link href="/register">
                 <Button variant="outline" size="lg">
                   Open Your Store
                 </Button>
@@ -174,7 +174,7 @@ export default async function HomePage() {
             process orders, and grow your business.
           </p>
           <div className="mt-8">
-            <Link href="/auth/register">
+            <Link href="/register">
               <Button
                 variant="outline"
                 size="lg"
