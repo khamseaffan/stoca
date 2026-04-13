@@ -9,18 +9,19 @@
 -- ============================================
 
 -- Store Owner: Sarah Chen
-INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at)
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change_token_current, reauthentication_token, email_change, phone_change, phone_change_token)
 VALUES (
   '11111111-1111-1111-1111-111111111111',
   '00000000-0000-0000-0000-000000000000',
   'sarah@demo.com',
-  '$2a$10$PznXRySFO4UbfT4GWITCP.XJGml7pHEgJHMDQId3mIlhgyWHyUhWS',
+  '$2a$10$CiYEmCLXv0QOdvqLr2r9L.OsbMf4zjrdQEB4uDqJ.W1eIGTRQ8Lfy',
   NOW(),
   '{"first_name":"Sarah","last_name":"Chen","role":"STORE_OWNER"}'::jsonb,
   'authenticated',
   'authenticated',
   NOW(),
-  NOW()
+  NOW(),
+  '', '', '', '', '', '', '', ''
 );
 
 INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
@@ -36,18 +37,19 @@ VALUES (
 );
 
 -- Store Owner: Marcus Johnson
-INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at)
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change_token_current, reauthentication_token, email_change, phone_change, phone_change_token)
 VALUES (
   '22222222-2222-2222-2222-222222222222',
   '00000000-0000-0000-0000-000000000000',
   'marcus@demo.com',
-  '$2a$10$PznXRySFO4UbfT4GWITCP.XJGml7pHEgJHMDQId3mIlhgyWHyUhWS',
+  '$2a$10$CiYEmCLXv0QOdvqLr2r9L.OsbMf4zjrdQEB4uDqJ.W1eIGTRQ8Lfy',
   NOW(),
   '{"first_name":"Marcus","last_name":"Johnson","role":"STORE_OWNER"}'::jsonb,
   'authenticated',
   'authenticated',
   NOW(),
-  NOW()
+  NOW(),
+  '', '', '', '', '', '', '', ''
 );
 
 INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
@@ -63,18 +65,19 @@ VALUES (
 );
 
 -- Customer: Emily Wilson
-INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at)
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change_token_current, reauthentication_token, email_change, phone_change, phone_change_token)
 VALUES (
   '33333333-3333-3333-3333-333333333333',
   '00000000-0000-0000-0000-000000000000',
   'emily@demo.com',
-  '$2a$10$PznXRySFO4UbfT4GWITCP.XJGml7pHEgJHMDQId3mIlhgyWHyUhWS',
+  '$2a$10$CiYEmCLXv0QOdvqLr2r9L.OsbMf4zjrdQEB4uDqJ.W1eIGTRQ8Lfy',
   NOW(),
   '{"first_name":"Emily","last_name":"Wilson","role":"CUSTOMER"}'::jsonb,
   'authenticated',
   'authenticated',
   NOW(),
-  NOW()
+  NOW(),
+  '', '', '', '', '', '', '', ''
 );
 
 INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
@@ -90,18 +93,19 @@ VALUES (
 );
 
 -- Customer: David Park
-INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at)
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change_token_current, reauthentication_token, email_change, phone_change, phone_change_token)
 VALUES (
   '44444444-4444-4444-4444-444444444444',
   '00000000-0000-0000-0000-000000000000',
   'david@demo.com',
-  '$2a$10$PznXRySFO4UbfT4GWITCP.XJGml7pHEgJHMDQId3mIlhgyWHyUhWS',
+  '$2a$10$CiYEmCLXv0QOdvqLr2r9L.OsbMf4zjrdQEB4uDqJ.W1eIGTRQ8Lfy',
   NOW(),
   '{"first_name":"David","last_name":"Park","role":"CUSTOMER"}'::jsonb,
   'authenticated',
   'authenticated',
   NOW(),
-  NOW()
+  NOW(),
+  '', '', '', '', '', '', '', ''
 );
 
 INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
@@ -117,18 +121,19 @@ VALUES (
 );
 
 -- Customer: Lisa Martinez
-INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at)
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change_token_current, reauthentication_token, email_change, phone_change, phone_change_token)
 VALUES (
   '55555555-5555-5555-5555-555555555555',
   '00000000-0000-0000-0000-000000000000',
   'lisa@demo.com',
-  '$2a$10$PznXRySFO4UbfT4GWITCP.XJGml7pHEgJHMDQId3mIlhgyWHyUhWS',
+  '$2a$10$CiYEmCLXv0QOdvqLr2r9L.OsbMf4zjrdQEB4uDqJ.W1eIGTRQ8Lfy',
   NOW(),
   '{"first_name":"Lisa","last_name":"Martinez","role":"CUSTOMER"}'::jsonb,
   'authenticated',
   'authenticated',
   NOW(),
-  NOW()
+  NOW(),
+  '', '', '', '', '', '', '', ''
 );
 
 INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
