@@ -25,6 +25,9 @@ node_modules/
 dist/
 .cache/
 
+# Prisma generated
+app/lib/generated/
+
 # Environment & Secrets
 .env
 .env.local
