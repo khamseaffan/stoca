@@ -3,6 +3,16 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8090'
 
+/**
+ * POST /api/ai/image — Image upload for AI inventory scanning.
+ *
+ * Expects FormData: image (File), storeId (string).
+ * Authenticates caller, verifies store ownership, uploads image to
+ * Supabase Storage (inventory-scans bucket), then forwards the public URL
+ * to the Python service's /api/tools/scan-inventory endpoint.
+ *
+ * Returns: { image_url: string, scan_result: object }
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()

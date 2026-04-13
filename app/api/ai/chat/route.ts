@@ -7,6 +7,12 @@ import { NextRequest } from 'next/server'
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8090'
 
+/**
+ * Fetches live store context for the AI system prompt.
+ * Runs 5 parallel Prisma queries: store info, product count, pending orders,
+ * today's revenue, and low stock items. Results are formatted into a summary
+ * that gives Claude awareness of the store's current state.
+ */
 async function getStoreContext(storeId: string) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -45,6 +51,12 @@ Current store context:
 You can use tools to manage the store. Always confirm before destructive actions (removing products, cancelling orders). Be concise and helpful.`
 }
 
+/**
+ * Forwards a tool call to the Python AI service.
+ * Sends the store owner's JWT for auth and returns the response as a JSON string.
+ * On failure, returns a human-readable error string (not thrown) so Claude
+ * can relay the error to the user conversationally.
+ */
 async function callToolService(
   endpoint: string,
   body: Record<string, unknown>,
@@ -72,6 +84,16 @@ async function callToolService(
   }
 }
 
+/**
+ * POST /api/ai/chat — Streaming AI chat endpoint.
+ *
+ * Expects JSON body: { messages: UIMessage[], storeId: string }
+ * Authenticates the caller, verifies store ownership, fetches live store
+ * context via Prisma, then streams a Claude response with 16 tools defined
+ * inline. Each tool delegates execution to the Python AI service.
+ *
+ * Returns a UI message stream via `toUIMessageStreamResponse()`.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { messages, storeId } = await request.json()

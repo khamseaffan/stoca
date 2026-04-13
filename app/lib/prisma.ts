@@ -1,3 +1,13 @@
+/**
+ * Prisma client singleton.
+ *
+ * Uses the Prisma 7 PrismaPg driver adapter for direct PostgreSQL connection.
+ * Bypasses Supabase RLS — use for all data queries in Server Components and
+ * API routes. In development, the client is cached on globalThis to survive
+ * hot reloads without exhausting database connections.
+ *
+ * Supabase client is still used for Auth, Storage, and Realtime.
+ */
 import { PrismaClient } from '@/lib/generated/prisma'
 import { PrismaPg } from '@prisma/adapter-pg'
 
