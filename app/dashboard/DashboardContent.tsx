@@ -290,11 +290,14 @@ export function DashboardContent({
                         : ''
 
                     return (
-                      <button
+                      <div
                         key={order.id}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setSelectedOrder(order)}
+                        onKeyDown={(e) => e.key === 'Enter' && setSelectedOrder(order)}
                         className={cn(
-                          'w-full rounded-xl border bg-white p-4 text-left transition-all hover:shadow-md',
+                          'w-full cursor-pointer rounded-xl border bg-white p-4 text-left transition-all hover:shadow-md',
                           pending
                             ? 'border-l-4 border-l-amber-400 border-t-secondary-200 border-r-secondary-200 border-b-secondary-200 bg-amber-50/40'
                             : 'border-secondary-200',
@@ -341,7 +344,7 @@ export function DashboardContent({
                             <ChevronRight className="h-4 w-4 text-secondary-400" />
                           </div>
                         </div>
-                      </button>
+                      </div>
                     )
                   })}
                 </div>
