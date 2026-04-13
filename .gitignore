@@ -58,3 +58,4 @@ logs/
 Thumbs.db
 CLAUDE.md
 docs/
+tsconfig.tsbuildinfo
