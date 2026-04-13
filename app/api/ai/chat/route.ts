@@ -1,4 +1,4 @@
-import { streamText, tool, stepCountIs } from 'ai'
+import { streamText, tool, stepCountIs, convertToModelMessages } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     const result = streamText({
       model: anthropic('claude-haiku-4-5-20251001'),
       system: buildSystemPrompt(storeContext),
-      messages,
+      messages: await convertToModelMessages(messages),
       stopWhen: stepCountIs(10),
       tools: {
         search_store_products: tool({
