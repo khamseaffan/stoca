@@ -1,0 +1,21 @@
+[project]
+name = "ai-service"
+version = "0.1.0"
+description = "AI tool-execution backend for Stoca — FastAPI service with vision, search, and enrichment"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic==0.80.0",
+    "asyncpg==0.30.0",
+    "fastapi==0.135.3",
+    "httpx==0.28.1",
+    "openai==1.75.0",
+    "pgvector==0.3.6",
+    "pillow==11.1.0",
+    "pydantic==2.11.0",
+    "pydantic-settings==2.8.0",
+    "python-dotenv==1.0.1",
+    "python-jose[cryptography]==3.3.0",
+    "python-multipart==0.0.20",
+    "sqlalchemy[asyncio]==2.0.40",
+    "uvicorn[standard]==0.34.0",
+]

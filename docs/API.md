@@ -111,157 +111,146 @@ curl -X POST http://localhost:3000/api/ai/image \
 
 ## Python Tool Endpoints (`AI_SERVICE_URL`)
 
-All endpoints are called by the Next.js chat route on behalf of Claude's tool calls. They require:
+All tool endpoints are called by the Next.js chat route on behalf of Claude's tool calls. They require:
 - `Content-Type: application/json`
 - `Authorization: Bearer <jwt>` — the store owner's Supabase JWT, forwarded from the chat route
 
-The Python service validates the JWT and resolves `store_id` ownership before executing.
+The Python service validates the JWT and resolves store ownership before executing. `store_id` is **not** passed in the body — it's resolved from the JWT.
+
+All tool endpoints return: `{"success": bool, "result": str}` (result is JSON-stringified for complex data).
 
 ### Product Tools
 
 #### `POST /api/tools/search-products`
 ```json
 // Request
-{ "store_id": "uuid", "query": "milk" }
+{ "query": "milk" }
 
 // Response
-{
-  "products": [
-    { "id": "uuid", "name": "Whole Milk", "price": 4.99, "quantity": 25, "category": "Dairy" },
-    { "id": "uuid", "name": "2% Milk", "price": 4.49, "quantity": 18, "category": "Dairy" }
-  ]
-}
+{ "success": true, "result": "[{\"id\": \"uuid\", \"name\": \"Whole Milk\", \"price\": 4.99, \"quantity\": 25, \"category\": \"Dairy\"}]" }
+```
+
+#### `POST /api/tools/get-all-products`
+```json
+// Request
+{ "page": 1, "per_page": 20 }
+
+// Response
+{ "success": true, "result": "{\"products\": [...], \"total\": 42, \"page\": 1}" }
 ```
 
 #### `POST /api/tools/update-price`
 ```json
 // Request
-{ "store_id": "uuid", "product_id": "uuid", "new_price": 5.49 }
+{ "product_name": "Whole Milk", "new_price": 5.49 }
 
-// Response
-{ "product_id": "uuid", "name": "Whole Milk", "old_price": 4.99, "new_price": 5.49 }
+// Response — single match
+{ "success": true, "result": "Updated Whole Milk: $4.99 → $5.49" }
+
+// Response — multiple matches (Claude should disambiguate)
+{ "success": false, "result": "Multiple matches: ['Whole Milk', '2% Milk']. Which one?" }
 ```
 
 #### `POST /api/tools/add-from-catalog`
 ```json
 // Request
-{ "store_id": "uuid", "global_product_id": "uuid", "price": 3.99 }
+{ "query": "Greek Yogurt", "price": 3.99 }
 
 // Response
-{ "product_id": "uuid", "product_name": "Greek Yogurt", "price": 3.99 }
+{ "success": true, "result": "Added Greek Yogurt to your store at $3.99." }
 ```
 
 #### `POST /api/tools/add-custom-product`
 ```json
 // Request
-{ "store_id": "uuid", "name": "House Blend Coffee", "price": 12.99, "category": "Beverages", "description": "Our signature blend", "quantity": 30 }
+{ "name": "House Blend Coffee", "price": 12.99, "category": "Beverages", "description": "Our signature blend", "quantity": 30 }
 
 // Response
-{ "product_id": "uuid", "product_name": "House Blend Coffee", "price": 12.99 }
+{ "success": true, "result": "Added custom product 'House Blend Coffee' at $12.99 (qty: 30)." }
 ```
 
 #### `POST /api/tools/remove-product`
 ```json
 // Request
-{ "store_id": "uuid", "product_id": "uuid" }
+{ "product_name": "Discontinued Item" }
 
 // Response
-{ "success": true, "product_name": "Discontinued Item" }
+{ "success": true, "result": "Removed Discontinued Item from your store." }
 ```
 
 #### `POST /api/tools/update-stock`
 ```json
 // Request
-{ "store_id": "uuid", "product_id": "uuid", "quantity": 50 }
+{ "product_name": "Organic Eggs", "quantity": 50 }
 
 // Response
-{ "product_id": "uuid", "name": "Organic Eggs", "quantity": 50 }
+{ "success": true, "result": "Updated Organic Eggs stock: 12 → 50" }
 ```
 
-#### `POST /api/tools/low-stock`
+#### `POST /api/tools/low-stock-alerts`
 ```json
-// Request
-{ "store_id": "uuid" }
+// Request — no body required
 
 // Response
-{
-  "alerts": [
-    { "id": "uuid", "name": "Organic Eggs", "quantity": 2, "threshold": 5 },
-    { "id": "uuid", "name": "Avocados", "quantity": 3, "threshold": 5 }
-  ]
-}
+{ "success": true, "result": "[{\"id\": \"uuid\", \"name\": \"Organic Eggs\", \"quantity\": 2, \"threshold\": 5}]" }
 ```
 
 ### Store Tools
 
-#### `POST /api/tools/update-hours`
+#### `POST /api/tools/update-store-hours`
 ```json
 // Request
-{ "store_id": "uuid", "hours": { "monday": { "open": "08:00", "close": "21:00" }, "sunday": { "open": "10:00", "close": "18:00" } } }
+{ "hours": { "monday": { "open": "08:00", "close": "21:00" }, "sunday": { "open": "10:00", "close": "18:00" } } }
 
 // Response
-{ "success": true, "message": "Store hours updated" }
+{ "success": true, "result": "Store hours updated." }
 ```
 
-#### `POST /api/tools/update-info`
+#### `POST /api/tools/update-store-info`
 ```json
 // Request
-{ "store_id": "uuid", "description": "Brooklyn's freshest grocery store" }
+{ "description": "Brooklyn's freshest grocery store" }
 
 // Response
-{ "success": true, "message": "Store info updated" }
+{ "success": true, "result": "Updated store: description." }
 ```
 
 #### `POST /api/tools/create-promotion`
 ```json
 // Request
-{ "store_id": "uuid", "title": "Spring Sale", "discount_percent": 15, "product_id": "uuid" }
+{ "title": "Spring Sale", "discount_percent": 15, "product_name": "Sourdough Bread" }
 
 // Response
-{ "promotion_id": "uuid", "title": "Spring Sale", "discount_percent": 15, "code": "SPRING15" }
+{ "success": true, "result": "Created promotion 'Spring Sale': 15.0% off on Sourdough Bread." }
 ```
 
 ### Order Tools
 
-#### `POST /api/tools/recent-orders`
+#### `POST /api/tools/get-orders`
 ```json
 // Request
-{ "store_id": "uuid", "limit": 5 }
+{ "limit": 5 }
 
 // Response
-{
-  "orders": [
-    { "id": "uuid", "customer_name": "Emily Wilson", "total": 23.47, "status": "PENDING", "item_count": 3, "created_at": "2026-04-10T14:30:00Z" }
-  ]
-}
+{ "success": true, "result": "[{\"id\": \"uuid\", \"customer_name\": \"Emily Wilson\", \"status\": \"PENDING\", \"total\": 23.47, \"item_count\": 3, \"created_at\": \"2026-04-10T14:30:00Z\"}]" }
 ```
 
-#### `POST /api/tools/order-details`
+#### `POST /api/tools/get-order-details`
 ```json
 // Request
-{ "store_id": "uuid", "order_id": "uuid" }
+{ "order_id": "uuid" }
 
 // Response
-{
-  "id": "uuid",
-  "customer": { "name": "Emily Wilson", "email": "emily@demo.com" },
-  "status": "PENDING",
-  "order_type": "PICKUP",
-  "items": [
-    { "product_name": "Whole Milk", "quantity": 2, "unit_price": 4.99, "total_price": 9.98 }
-  ],
-  "subtotal": 23.47,
-  "total": 23.47
-}
+{ "success": true, "result": "{\"id\": \"uuid\", \"customer\": {\"name\": \"Emily Wilson\", \"email\": \"emily@demo.com\"}, \"status\": \"PENDING\", \"order_type\": \"PICKUP\", \"items\": [{\"product_name\": \"Whole Milk\", \"quantity\": 2, \"unit_price\": 4.99, \"total_price\": 9.98}], \"subtotal\": 23.47, \"total\": 23.47}" }
 ```
 
 #### `POST /api/tools/update-order-status`
 ```json
 // Request
-{ "store_id": "uuid", "order_id": "uuid", "status": "CONFIRMED" }
+{ "order_id": "uuid", "status": "CONFIRMED" }
 
 // Response
-{ "order_id": "uuid", "old_status": "PENDING", "status": "CONFIRMED" }
+{ "success": true, "result": "Order updated: PENDING → CONFIRMED" }
 ```
 
 ### Analytics Tools
@@ -269,24 +258,28 @@ The Python service validates the JWT and resolves `store_id` ownership before ex
 #### `POST /api/tools/sales-summary`
 ```json
 // Request
-{ "store_id": "uuid", "period": "today" }
+{ "period": "today" }
 
 // Response
-{ "period": "today", "total_revenue": 247.50, "order_count": 12, "average_order": 20.63 }
+{ "success": true, "result": "{\"period\": \"today\", \"total_revenue\": 247.50, \"order_count\": 12, \"average_order\": 20.63}" }
 ```
 
 #### `POST /api/tools/top-products`
 ```json
 // Request
-{ "store_id": "uuid", "limit": 5 }
+{ "limit": 5 }
 
 // Response
-{
-  "products": [
-    { "name": "Sourdough Bread", "units_sold": 34, "revenue": 237.66 },
-    { "name": "Whole Milk", "units_sold": 28, "revenue": 139.72 }
-  ]
-}
+{ "success": true, "result": "[{\"name\": \"Sourdough Bread\", \"units_sold\": 34, \"revenue\": 237.66}]" }
+```
+
+### Store Context
+
+#### `POST /api/tools/get-store-context`
+Used by Next.js to build the AI system prompt. No body required.
+```json
+// Response
+{ "success": true, "result": "{\"store_name\": \"Brooklyn Grocers\", \"store_type\": \"GROCERY\", \"product_count\": 42, \"pending_orders\": 3, \"todays_revenue\": 247.50}" }
 ```
 
 ### Vision Tool
@@ -294,13 +287,30 @@ The Python service validates the JWT and resolves `store_id` ownership before ex
 #### `POST /api/tools/scan-inventory`
 ```json
 // Request
-{ "store_id": "uuid", "image_url": "https://storage.supabase.co/.../shelf.jpg" }
+{ "image_url": "https://storage.supabase.co/.../shelf.jpg" }
 
 // Response
-{
-  "products": [
-    { "name": "Whole Milk", "confidence": 0.95, "category": "Dairy", "estimated_quantity": 12 },
-    { "name": "Orange Juice", "confidence": 0.87, "category": "Beverages", "estimated_quantity": 8 }
-  ]
-}
+{ "success": true, "result": "[{\"name\": \"Whole Milk\", \"brand\": \"Organic Valley\", \"estimated_quantity\": 12, \"confidence\": 0.95, \"matched_global_product_id\": \"uuid\"}]" }
+```
+
+### Semantic Search
+
+#### `POST /api/ai/search`
+```json
+// Request
+{ "query": "organic dairy", "store_id": "uuid", "limit": 10 }
+
+// Response (list of SearchResult)
+[{ "product_id": "uuid", "store_id": "uuid", "store_name": "Brooklyn Grocers", "product_name": "Organic Whole Milk", "price": 5.99, "image_url": "https://...", "score": 0.92 }]
+```
+
+### Product Enrichment
+
+#### `POST /api/ai/enrich`
+```json
+// Request
+{ "name": "Organic Sourdough Bread", "price": 6.99, "category": "Bakery" }
+
+// Response
+{ "description": "Freshly baked organic sourdough with a crispy crust and tangy flavor. Perfect for sandwiches or as a side with any meal.", "category": "Bakery", "subcategory": "Bread", "tags": ["organic", "sourdough", "artisan", "bread"] }
 ```
