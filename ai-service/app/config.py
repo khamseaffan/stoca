@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
     supabase_jwt_secret: str = ""
     embedding_model: str = "text-embedding-3-small"
+    pexels_api_key: str = ""
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

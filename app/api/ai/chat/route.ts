@@ -311,6 +311,37 @@ export async function POST(request: NextRequest) {
             return callToolService('/api/tools/scan-inventory', { image_url }, token)
           },
         }),
+
+        search_product_image: tool({
+          description: 'Find and set a product image from the web. Use when products are missing images.',
+          inputSchema: z.object({
+            product_name: z.string().describe('The product name to find an image for'),
+            category: z.string().optional().describe('Optional category hint for better image results'),
+          }),
+          execute: async ({ product_name, category }) => {
+            return callToolService('/api/tools/search-product-image', { product_name, category }, token)
+          },
+        }),
+
+        enrich_product_description: tool({
+          description: 'Generate a compelling AI-written description for a product',
+          inputSchema: z.object({
+            product_name: z.string().describe('The product name to generate a description for'),
+          }),
+          execute: async ({ product_name }) => {
+            return callToolService('/api/tools/enrich-product-description', { product_name }, token)
+          },
+        }),
+
+        enrich_products_bulk: tool({
+          description: 'Bulk-enrich multiple products at once — find missing images or generate missing descriptions',
+          inputSchema: z.object({
+            filter: z.enum(['missing_images', 'missing_descriptions', 'all']).describe('Which products to enrich'),
+          }),
+          execute: async ({ filter }) => {
+            return callToolService('/api/tools/enrich-products-bulk', { filter }, token)
+          },
+        }),
       },
     })
 
