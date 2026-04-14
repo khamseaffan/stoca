@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { Bot, SendHorizontal, Camera } from 'lucide-react'
+import { Bot, SendHorizontal, Camera, AlertCircle, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ChatMessage } from './ChatMessage'
 import { ImageUploadPreview } from './ImageUploadPreview'
@@ -28,12 +28,18 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
     [storeId],
   )
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     id: `store-${storeId}`,
     transport,
   })
 
   const isLoading = status === 'submitted' || status === 'streaming'
+
+  // Auto-focus chat input on mount
+  useEffect(() => {
+    const timer = setTimeout(() => inputRef.current?.focus(), 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -182,6 +188,36 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
                 <span className="h-2 w-2 rounded-full bg-secondary-400 animate-bounce" style={{ animationDelay: '200ms', animationDuration: '1.4s' }} />
                 <span className="h-2 w-2 rounded-full bg-secondary-400 animate-bounce" style={{ animationDelay: '400ms', animationDuration: '1.4s' }} />
               </div>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex gap-2.5 justify-start">
+            <div className="shrink-0 mt-1">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-100">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+              </div>
+            </div>
+            <div className="rounded-2xl rounded-bl-sm border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+              <p>Something went wrong. Please try again.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')
+                  if (lastUserMsg) {
+                    const textPart = (lastUserMsg.parts ?? []).find((p) => p.type === 'text') as { text: string } | undefined
+                    if (textPart?.text) {
+                      setInputValue(textPart.text)
+                      inputRef.current?.focus()
+                    }
+                  }
+                }}
+                className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800 transition-colors"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Retry last message
+              </button>
             </div>
           </div>
         )}

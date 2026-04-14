@@ -17,6 +17,19 @@ function formatStoreType(storeType: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+function isStoreOpen(hours: Record<string, { open: string; close: string }> | null): boolean {
+  if (!hours) return false
+  const now = new Date()
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  const today = days[now.getDay()]
+  const todayHours = hours[today]
+  if (!todayHours || todayHours.open === 'closed') return false
+  const [openH, openM] = todayHours.open.split(':').map(Number)
+  const [closeH, closeM] = todayHours.close.split(':').map(Number)
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  return currentMinutes >= openH * 60 + openM && currentMinutes < closeH * 60 + closeM
+}
+
 export async function generateMetadata({ params }: StorePageProps) {
   const { slug } = await params
 
@@ -137,6 +150,11 @@ export default async function StorePage({ params }: StorePageProps) {
               <Badge variant="default">
                 {formatStoreType(typedStore.store_type)}
               </Badge>
+              {isStoreOpen(typedStore.operating_hours as Record<string, { open: string; close: string }>) ? (
+                <Badge variant="success">Open Now</Badge>
+              ) : (
+                <Badge variant="danger">Closed</Badge>
+              )}
             </div>
             {typedStore.description && (
               <p className="mt-2 max-w-2xl text-secondary-600">
@@ -165,7 +183,7 @@ export default async function StorePage({ params }: StorePageProps) {
               {typedStore.delivery_enabled && (
                 <span className="flex items-center gap-1.5">
                   <Truck className="h-4 w-4 text-secondary-400" />
-                  Delivery
+                  Delivery{typedStore.delivery_fee > 0 ? ` ($${typedStore.delivery_fee.toFixed(2)})` : ' (free)'}
                 </span>
               )}
             </div>
