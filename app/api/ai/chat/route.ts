@@ -137,29 +137,29 @@ export async function POST(request: NextRequest) {
             query: z.string().describe('Search query for products'),
           }),
           execute: async ({ query }) => {
-            return callToolService('/api/tools/search-products', { store_id: storeId, query }, token)
+            return callToolService('/api/tools/search-products', { query }, token)
           },
         }),
 
         update_product_price: tool({
-          description: 'Update the price of a store product',
+          description: 'Update the price of a store product by name',
           inputSchema: z.object({
-            product_id: z.string().describe('The store product ID'),
+            product_name: z.string().describe('The product name (or partial name) to update'),
             new_price: z.number().positive().describe('The new price in dollars'),
           }),
-          execute: async ({ product_id, new_price }) => {
-            return callToolService('/api/tools/update-price', { store_id: storeId, product_id, new_price }, token)
+          execute: async ({ product_name, new_price }) => {
+            return callToolService('/api/tools/update-price', { product_name, new_price }, token)
           },
         }),
 
         add_product_from_catalog: tool({
-          description: 'Add a product from the global catalog to this store',
+          description: 'Search the global catalog by name and add a matching product to this store',
           inputSchema: z.object({
-            global_product_id: z.string().describe('The global product ID to add'),
+            query: z.string().describe('Product name to search for in the global catalog'),
             price: z.number().positive().describe('The price to set for this product'),
           }),
-          execute: async ({ global_product_id, price }) => {
-            return callToolService('/api/tools/add-from-catalog', { store_id: storeId, global_product_id, price }, token)
+          execute: async ({ query, price }) => {
+            return callToolService('/api/tools/add-from-catalog', { query, price }, token)
           },
         }),
 
@@ -174,29 +174,29 @@ export async function POST(request: NextRequest) {
           }),
           execute: async ({ name, price, category, description, quantity }) => {
             return callToolService('/api/tools/add-custom-product', {
-              store_id: storeId, name, price, category, description, quantity,
+              name, price, category, description, quantity,
             }, token)
           },
         }),
 
         remove_product: tool({
-          description: 'Remove a product from the store. Always confirm with the owner before removing.',
+          description: 'Remove a product from the store by name. Always confirm with the owner before removing.',
           inputSchema: z.object({
-            product_id: z.string().describe('The store product ID to remove'),
+            product_name: z.string().describe('The product name (or partial name) to remove'),
           }),
-          execute: async ({ product_id }) => {
-            return callToolService('/api/tools/remove-product', { store_id: storeId, product_id }, token)
+          execute: async ({ product_name }) => {
+            return callToolService('/api/tools/remove-product', { product_name }, token)
           },
         }),
 
         update_stock_quantity: tool({
-          description: 'Update the stock quantity of a store product',
+          description: 'Update the stock quantity of a store product by name',
           inputSchema: z.object({
-            product_id: z.string().describe('The store product ID'),
+            product_name: z.string().describe('The product name (or partial name) to update'),
             quantity: z.number().int().nonnegative().describe('The new stock quantity'),
           }),
-          execute: async ({ product_id, quantity }) => {
-            return callToolService('/api/tools/update-stock', { store_id: storeId, product_id, quantity }, token)
+          execute: async ({ product_name, quantity }) => {
+            return callToolService('/api/tools/update-stock', { product_name, quantity }, token)
           },
         }),
 
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
           description: 'Get a list of products that are low in stock',
           inputSchema: z.object({}),
           execute: async () => {
-            return callToolService('/api/tools/low-stock', { store_id: storeId }, token)
+            return callToolService('/api/tools/low-stock-alerts', {}, token)
           },
         }),
 
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
             })).describe('Operating hours by day of week'),
           }),
           execute: async ({ hours }) => {
-            return callToolService('/api/tools/update-hours', { store_id: storeId, hours }, token)
+            return callToolService('/api/tools/update-store-hours', { hours }, token)
           },
         }),
 
@@ -229,21 +229,21 @@ export async function POST(request: NextRequest) {
             phone: z.string().optional().describe('New phone number'),
           }),
           execute: async ({ name, description, phone }) => {
-            return callToolService('/api/tools/update-info', { store_id: storeId, name, description, phone }, token)
+            return callToolService('/api/tools/update-store-info', { name, description, phone }, token)
           },
         }),
 
         create_promotion: tool({
           description: 'Create a promotional discount for the store or a specific product',
           inputSchema: z.object({
-            product_id: z.string().optional().describe('Specific product ID to apply promotion to (optional for store-wide)'),
+            product_name: z.string().optional().describe('Product name to apply promotion to (optional for store-wide)'),
             title: z.string().describe('Promotion title'),
             discount_percent: z.number().min(1).max(100).optional().describe('Discount percentage (1-100)'),
             discount_amount: z.number().positive().optional().describe('Fixed discount amount in dollars'),
           }),
-          execute: async ({ product_id, title, discount_percent, discount_amount }) => {
+          execute: async ({ product_name, title, discount_percent, discount_amount }) => {
             return callToolService('/api/tools/create-promotion', {
-              store_id: storeId, product_id, title, discount_percent, discount_amount,
+              product_name, title, discount_percent, discount_amount,
             }, token)
           },
         }),
@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
             limit: z.number().int().min(1).max(50).default(10).describe('Number of orders to retrieve'),
           }),
           execute: async ({ limit }) => {
-            return callToolService('/api/tools/recent-orders', { store_id: storeId, limit }, token)
+            return callToolService('/api/tools/get-orders', { limit }, token)
           },
         }),
 
@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
             order_id: z.string().describe('The order ID to look up'),
           }),
           execute: async ({ order_id }) => {
-            return callToolService('/api/tools/order-details', { store_id: storeId, order_id }, token)
+            return callToolService('/api/tools/get-order-details', { order_id }, token)
           },
         }),
 
@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
             ]).describe('The new order status'),
           }),
           execute: async ({ order_id, status }) => {
-            return callToolService('/api/tools/update-order-status', { store_id: storeId, order_id, status }, token)
+            return callToolService('/api/tools/update-order-status', { order_id, status }, token)
           },
         }),
 
@@ -288,7 +288,7 @@ export async function POST(request: NextRequest) {
             period: z.enum(['today', 'week', 'month']).describe('Time period for the summary'),
           }),
           execute: async ({ period }) => {
-            return callToolService('/api/tools/sales-summary', { store_id: storeId, period }, token)
+            return callToolService('/api/tools/sales-summary', { period }, token)
           },
         }),
 
@@ -298,7 +298,7 @@ export async function POST(request: NextRequest) {
             limit: z.number().int().min(1).max(20).default(5).describe('Number of top products to retrieve'),
           }),
           execute: async ({ limit }) => {
-            return callToolService('/api/tools/top-products', { store_id: storeId, limit }, token)
+            return callToolService('/api/tools/top-products', { limit }, token)
           },
         }),
 
@@ -308,7 +308,7 @@ export async function POST(request: NextRequest) {
             image_url: z.string().url().describe('URL of the inventory image to process'),
           }),
           execute: async ({ image_url }) => {
-            return callToolService('/api/tools/scan-inventory', { store_id: storeId, image_url }, token)
+            return callToolService('/api/tools/scan-inventory', { image_url }, token)
           },
         }),
       },
