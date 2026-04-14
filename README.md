@@ -12,11 +12,19 @@ Stoca is an AI-native local commerce platform. One store owner, zero tech skills
 ## Tech Stack
 
 - **Frontend**: Next.js 16 (App Router) + TailwindCSS 4.2 + TypeScript 5.8
-- **AI**: Vercel AI SDK v6 + Anthropic Claude (streaming chat with 16 tools)
+- **AI**: Vercel AI SDK v6 + Anthropic Claude (streaming chat with 19 tools)
 - **ORM**: Prisma 7 (pure TS, PrismaPg adapter) for type-safe database access
 - **Database**: Supabase (PostgreSQL + pgvector + Auth + Storage + Realtime)
 - **Tool Service**: Python 3.12 / FastAPI (vision, semantic search, catalog enrichment)
 - **Analytics**: PostHog
+
+## Features
+
+- **19 AI tools** including 3 product enrichment tools (description rewriting, tag generation, SEO optimization)
+- **Drag-and-drop Kanban order board** for visual order management on the dashboard
+- **Toast notification system** for real-time user feedback across the app
+- **AI-powered description rewriting** — rewrite product descriptions in one click via Claude
+- **Product images in seed data** sourced from Unsplash CDN for a realistic demo experience
 
 ## Development
 
@@ -65,6 +73,24 @@ cd ai-service
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8090
 ```
+
+### Running Both Services
+
+The app requires both the Next.js frontend and the Python AI service running simultaneously:
+
+```bash
+# Terminal 1: Next.js
+npm run dev
+
+# Terminal 2: Python AI service
+cd ai-service
+uv run uvicorn app.main:app --reload --port 8090
+
+# Terminal 3: Supabase (if using local)
+supabase start
+```
+
+The Next.js app connects to the Python service at `http://localhost:8090` by default (configurable via `AI_SERVICE_URL` env var).
 
 ### Prisma Commands
 

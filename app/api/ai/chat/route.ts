@@ -89,7 +89,7 @@ async function callToolService(
  *
  * Expects JSON body: { messages: UIMessage[], storeId: string }
  * Authenticates the caller, verifies store ownership, fetches live store
- * context via Prisma, then streams a Claude response with 16 tools defined
+ * context via Prisma, then streams a Claude response with 19 tools defined
  * inline. Each tool delegates execution to the Python AI service.
  *
  * Returns a UI message stream via `toUIMessageStreamResponse()`.

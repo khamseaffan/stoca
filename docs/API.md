@@ -4,7 +4,7 @@
 
 ### `POST /api/ai/chat`
 
-Streaming AI chat endpoint. Authenticates the store owner, fetches live store context via Prisma (product count, pending orders, today's revenue, low stock), builds a dynamic system prompt, then calls Claude via `streamText()` with 16 tools. Each tool delegates execution to the Python AI service.
+Streaming AI chat endpoint. Authenticates the store owner, fetches live store context via Prisma (product count, pending orders, today's revenue, low stock), builds a dynamic system prompt, then calls Claude via `streamText()` with 19 tools. Each tool delegates execution to the Python AI service.
 
 **Auth**: Required — must be the owner of the specified store.
 
@@ -37,7 +37,7 @@ data: {"type":"text-delta","textDelta":"You have 1 product running low: **Organi
 data: {"type":"finish","finishReason":"stop"}
 ```
 
-**Tools** (16 total, each defined with zod input schemas):
+**Tools** (19 total, each defined with zod input schemas):
 
 | Tool | Description | Input Schema |
 |---|---|---|
@@ -57,6 +57,11 @@ data: {"type":"finish","finishReason":"stop"}
 | `get_sales_summary` | Revenue/order stats | `{ period: 'today' \| 'week' \| 'month' }` |
 | `get_top_products` | Best selling products | `{ limit: number }` |
 | `process_inventory_image` | AI vision scan | `{ image_url: string }` |
+| `search_product_image` | Find and set a product image from the web | `{ product_name: string, category?: string }` |
+| `enrich_product_description` | Generate AI-written product description | `{ product_name: string }` |
+| `enrich_products_bulk` | Bulk-enrich products (images or descriptions) | `{ filter: 'missing_images' \| 'missing_descriptions' \| 'all' }` |
+
+**Tool parameter alignment note**: All Next.js tool schemas use parameter names that match the Python endpoint models exactly. Name-based lookups use `product_name` (not `product_id`). Catalog search uses `query` (not `global_product_id`). `store_id` is never sent in request bodies -- it is resolved from the JWT on the Python side.
 
 **Error responses**:
 - `400` — Missing `storeId`
@@ -106,6 +111,41 @@ curl -X POST http://localhost:3000/api/ai/image \
 - `401` — Not authenticated
 - `403` — User doesn't own the store
 - `500` — Upload or scan failure
+
+---
+
+### `POST /api/ai/rewrite`
+
+Generate a polished, AI-written product description using Claude. Forwards the request to the Python enrichment endpoint (`/api/ai/enrich`) and returns just the description string. Used by the `AIRewriteButton` component on product forms.
+
+**Auth**: Required — Supabase session (access token forwarded to Python service).
+
+**Request Body**:
+```json
+{
+  "name": "Organic Sourdough Bread",
+  "price": 6.99,
+  "category": "Bakery"
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | Yes | Product name |
+| `price` | number | No | Product price (improves description quality) |
+| `category` | string | No | Product category (improves description quality) |
+
+**Success response** (`200`):
+```json
+{
+  "description": "Freshly baked organic sourdough with a crispy crust and tangy flavor. Perfect for sandwiches or as a side with any meal."
+}
+```
+
+**Error responses**:
+- `400` — Missing `name`
+- `4xx` — Upstream Python service error (status forwarded)
+- `500` — Internal server error
 
 ---
 
@@ -292,6 +332,83 @@ Used by Next.js to build the AI system prompt. No body required.
 // Response
 { "success": true, "result": "[{\"name\": \"Whole Milk\", \"brand\": \"Organic Valley\", \"estimated_quantity\": 12, \"confidence\": 0.95, \"matched_global_product_id\": \"uuid\"}]" }
 ```
+
+### Enrichment Tools
+
+#### `POST /api/tools/search-product-image`
+
+Find and set a product image using the Pexels API. Falls back to a `placehold.co` placeholder if no Pexels API key is configured or the search returns no results. Looks up the product by name in the owner's store, then updates its `image_urls` column.
+
+```json
+// Request
+{ "product_name": "Whole Milk", "category": "Dairy" }
+
+// Response — image found and saved
+{ "success": true, "result": "Found image for Whole Milk" }
+
+// Response — product not found
+{ "success": false, "result": "No product matching 'Almond Milk' found in your store." }
+
+// Response — multiple matches
+{ "success": false, "result": "Multiple matches for 'Milk': ['Whole Milk', '2% Milk', 'Oat Milk']. Please be more specific." }
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `product_name` | string | Yes | Product name to search for |
+| `category` | string | No | Category hint for better image search results |
+
+#### `POST /api/tools/enrich-product-description`
+
+Generate a compelling AI-written description for a single product using Claude. Looks up the product by name, calls the enrichment service, then saves the generated description to the database.
+
+```json
+// Request
+{ "product_name": "Whole Milk" }
+
+// Response
+{ "success": true, "result": "Updated description for Whole Milk: Farm-fresh whole milk with a rich, creamy taste. A versatile kitchen staple for cooking, baking, and enjoying by the glass." }
+
+// Response — product not found
+{ "success": false, "result": "No product matching 'Almond Butter' found in your store." }
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `product_name` | string | Yes | Product name to generate a description for |
+
+#### `POST /api/tools/enrich-products-bulk`
+
+Bulk-enrich multiple products at once. Finds products that are missing images or descriptions and fills them in automatically. Images come from Pexels (with placeholder fallback). Descriptions come from Claude.
+
+Rate-limited to a maximum of 20 products per call to avoid timeouts.
+
+```json
+// Request — find images for all products missing them
+{ "filter": "missing_images" }
+
+// Response
+{ "success": true, "result": "Enriched 12 products with images" }
+
+// Request — generate descriptions for products without one
+{ "filter": "missing_descriptions" }
+
+// Response
+{ "success": true, "result": "Enriched 8 products with descriptions" }
+
+// Request — enrich everything missing
+{ "filter": "all" }
+
+// Response
+{ "success": true, "result": "Enriched 12 products with images\nEnriched 8 products with descriptions" }
+
+// Response — nothing to do
+{ "success": true, "result": "All products already have images." }
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `filter` | string | No (default: `"all"`) | One of `"missing_images"`, `"missing_descriptions"`, or `"all"` |
 
 ### Semantic Search
 
