@@ -9,10 +9,8 @@ import {
   Bot,
   X,
   Check,
-  ChevronRight,
   Package,
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 import { cn, formatPrice, formatDate } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { Card } from '@/components/ui/Card'
@@ -21,6 +19,7 @@ import { Badge, OrderStatusBadge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useToast } from '@/components/ui/Toast'
+import { KanbanBoard } from '@/components/dashboard/KanbanBoard'
 import { ChatWindow } from '@/components/chat/ChatWindow'
 import type { DashboardStats, OrderWithItems, OrderStatus } from '@/types'
 
@@ -222,9 +221,6 @@ export function DashboardContent({
     [],
   )
 
-  const isPending = (status: OrderStatus) =>
-    status === 'PENDING' || status === 'CONFIRMED'
-
   const statCards = getStatCards(stats)
 
   return (
@@ -269,11 +265,11 @@ export function DashboardContent({
               ))}
             </div>
 
-            {/* Order queue */}
+            {/* Order Kanban board */}
             <div>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-secondary-900">
-                  Recent Orders
+                  Order Board
                 </h2>
                 <Badge variant="default">
                   {orders.length} order{orders.length !== 1 ? 's' : ''}
@@ -287,81 +283,12 @@ export function DashboardContent({
                   description="When customers place orders, they will appear here in real time."
                 />
               ) : (
-                <div className="space-y-3">
-                  {orders.map((order) => {
-                    const pending = isPending(order.status)
-                    const customerName = order.profile
-                      ? `${order.profile.first_name} ${order.profile.last_name}`
-                      : 'Customer'
-                    const itemNames =
-                      order.order_items
-                        ?.slice(0, 3)
-                        .map((item) => item.product_name)
-                        .join(', ') ?? ''
-                    const moreItems =
-                      (order.order_items?.length ?? 0) > 3
-                        ? ` +${(order.order_items?.length ?? 0) - 3} more`
-                        : ''
-
-                    return (
-                      <div
-                        key={order.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedOrder(order)}
-                        onKeyDown={(e) => e.key === 'Enter' && setSelectedOrder(order)}
-                        className={cn(
-                          'w-full cursor-pointer rounded-xl border bg-white p-4 text-left transition-all hover:shadow-md',
-                          pending
-                            ? 'border-l-4 border-l-amber-400 border-t-secondary-200 border-r-secondary-200 border-b-secondary-200 bg-amber-50/40'
-                            : 'border-secondary-200',
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-secondary-900 text-sm">
-                                {customerName}
-                              </span>
-                              <OrderStatusBadge status={order.status} />
-                            </div>
-                            <p className="text-xs text-secondary-500 truncate">
-                              {order.order_items?.length ?? 0} item
-                              {(order.order_items?.length ?? 0) !== 1 ? 's' : ''}{' '}
-                              &middot; {itemNames}
-                              {moreItems}
-                            </p>
-                            <div className="mt-2 flex items-center gap-3">
-                              <span className="text-sm font-semibold text-secondary-900">
-                                {formatPrice(order.total)}
-                              </span>
-                              <span className="text-xs text-secondary-400">
-                                {formatDistanceToNow(new Date(order.created_at), {
-                                  addSuffix: true,
-                                })}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex shrink-0 items-center gap-2">
-                            {order.status === 'PENDING' && (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                loading={updatingOrderId === order.id}
-                                onClick={(e) => handleAcceptOrder(order.id, e)}
-                              >
-                                <Check className="h-4 w-4" />
-                                Accept
-                              </Button>
-                            )}
-                            <ChevronRight className="h-4 w-4 text-secondary-400" />
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                <KanbanBoard
+                  orders={orders}
+                  onUpdateStatus={handleUpdateOrderStatus}
+                  onSelectOrder={setSelectedOrder}
+                  compact
+                />
               )}
             </div>
           </div>
