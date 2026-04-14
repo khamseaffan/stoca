@@ -76,7 +76,7 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const initialMessages = useMemo(() => loadMessages(storeId), [storeId])
+  const [hydrated, setHydrated] = useState(false)
 
   const transport = useMemo(
     () => new DefaultChatTransport({ api: '/api/ai/chat', body: { storeId } }),
@@ -86,17 +86,24 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
   const { messages, sendMessage, setMessages, status, error } = useChat({
     id: `store-${storeId}`,
     transport,
-    messages: initialMessages.length > 0 ? initialMessages : undefined,
   })
 
   const isLoading = status === 'submitted' || status === 'streaming'
 
-  // Persist messages to localStorage on change
+  // Restore messages from localStorage after hydration (client-only)
   useEffect(() => {
-    if (messages.length > 0) {
-      saveMessages(storeId, messages)
+    const saved = loadMessages(storeId)
+    if (saved.length > 0) {
+      setMessages(saved)
     }
-  }, [messages, storeId])
+    setHydrated(true)
+  }, [storeId, setMessages])
+
+  // Persist messages to localStorage on change (only after hydration)
+  useEffect(() => {
+    if (!hydrated) return
+    saveMessages(storeId, messages)
+  }, [messages, storeId, hydrated])
 
   // Auto-focus chat input on mount
   useEffect(() => {
