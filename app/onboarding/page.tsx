@@ -36,6 +36,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { AIRewriteButton } from '@/components/ui/AIRewriteButton'
 import { ChatWindow } from '@/components/chat/ChatWindow'
 
 // ---------------------------------------------------------------------------
@@ -284,12 +285,22 @@ function StepStoreBasics({
         </div>
 
         <div className="sm:col-span-2">
-          <label
-            htmlFor="description"
-            className="mb-1.5 block text-sm font-medium text-secondary-700"
-          >
-            Description
-          </label>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-secondary-700"
+            >
+              Description
+            </label>
+            <AIRewriteButton
+              context={{
+                name: data.name,
+                category: data.storeType,
+                currentText: data.description,
+              }}
+              onResult={(text) => onChange({ description: text })}
+            />
+          </div>
           <textarea
             id="description"
             rows={3}
@@ -736,12 +747,23 @@ function ManualProductForm({
         />
       </div>
       <div>
-        <label
-          htmlFor="manual-desc"
-          className="mb-1.5 block text-sm font-medium text-secondary-700"
-        >
-          Description
-        </label>
+        <div className="mb-1.5 flex items-center justify-between">
+          <label
+            htmlFor="manual-desc"
+            className="block text-sm font-medium text-secondary-700"
+          >
+            Description
+          </label>
+          <AIRewriteButton
+            context={{
+              name,
+              price: parseFloat(price) || undefined,
+              category: category || undefined,
+              currentText: description,
+            }}
+            onResult={(text) => setDescription(text)}
+          />
+        </div>
         <textarea
           id="manual-desc"
           rows={2}
