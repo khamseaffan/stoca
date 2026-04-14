@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { ChatWindow } from '@/components/chat/ChatWindow'
 import type { Store } from '@/types'
 
 const navItems = [
@@ -33,8 +34,24 @@ export function DashboardShell({ store, children }: DashboardShellProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+
+  // Listen for "open chat" events from child components
+  useEffect(() => {
+    function handleOpenChat() {
+      setChatOpen(true)
+    }
+    window.addEventListener('open-dashboard-chat', handleOpenChat)
+    return () => window.removeEventListener('open-dashboard-chat', handleOpenChat)
+  }, [])
 
   async function handleSignOut() {
+    // Clear chat history on logout
+    try {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('stoca-chat-')) localStorage.removeItem(key)
+      })
+    } catch { /* ignore */ }
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/login')
@@ -77,21 +94,22 @@ export function DashboardShell({ store, children }: DashboardShellProps) {
         })}
 
         {/* AI Chat shortcut */}
-        <Link
-          href="/dashboard"
+        <button
+          type="button"
           onClick={() => {
             setMobileOpen(false)
-            // Dispatch custom event so DashboardContent can open the chat
-            window.dispatchEvent(new CustomEvent('open-dashboard-chat'))
+            setChatOpen(true)
           }}
           className={cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-            'text-secondary-600 hover:bg-secondary-100 hover:text-secondary-900',
+            'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            chatOpen
+              ? 'bg-primary-100 text-primary-700'
+              : 'text-secondary-600 hover:bg-secondary-100 hover:text-secondary-900',
           )}
         >
           <Bot className="h-5 w-5 shrink-0" />
           AI Chat
-        </Link>
+        </button>
       </nav>
 
       {/* Bottom section */}
@@ -181,6 +199,39 @@ export function DashboardShell({ store, children }: DashboardShellProps) {
       <main className="lg:ml-64">
         {children}
       </main>
+
+      {/* ── Global chat drawer — always mounted, available on all dashboard pages ── */}
+      <div
+        className={cn(
+          'fixed inset-0 z-40 bg-black/30 transition-opacity',
+          chatOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
+        )}
+        onClick={() => setChatOpen(false)}
+        aria-hidden="true"
+      />
+      <div
+        className={cn(
+          'fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl transition-transform duration-300 sm:max-w-[420px]',
+          chatOpen ? 'translate-x-0' : 'translate-x-full',
+        )}
+      >
+        <ChatWindow
+          storeId={store.id}
+          storeName={store.name}
+          className="h-full rounded-none border-0"
+        />
+      </div>
+
+      {/* Floating chat button — visible when chat is closed */}
+      {!chatOpen && (
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-all hover:scale-105 hover:bg-primary-700 hover:shadow-xl lg:hidden"
+          aria-label="Open AI Chat"
+        >
+          <Bot className="h-6 w-6" />
+        </button>
+      )}
     </div>
   )
 }

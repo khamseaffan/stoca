@@ -11,7 +11,6 @@ import {
   Check,
   Package,
   MessageSquare,
-  PanelRightClose,
 } from 'lucide-react'
 import { cn, formatPrice, formatDate } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -22,7 +21,6 @@ import { Modal } from '@/components/ui/Modal'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useToast } from '@/components/ui/Toast'
 import { KanbanBoard } from '@/components/dashboard/KanbanBoard'
-import { ChatWindow } from '@/components/chat/ChatWindow'
 import type { DashboardStats, OrderWithItems, OrderStatus } from '@/types'
 
 // Notification sound (short beep via data URI)
@@ -75,7 +73,6 @@ export function DashboardContent({
   const [orders, setOrders] = useState<OrderWithItems[]>(initialOrders)
   const [stats, setStats] = useState<DashboardStats>(initialStats)
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
-  const [chatOpen, setChatOpen] = useState(false)
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const { toast } = useToast()
@@ -84,15 +81,6 @@ export function DashboardContent({
   useEffect(() => {
     audioRef.current = new Audio(NOTIFICATION_SOUND)
     audioRef.current.volume = 0.3
-  }, [])
-
-  // Listen for the "open chat" custom event from sidebar nav
-  useEffect(() => {
-    function handleOpenChat() {
-      setChatOpen(true)
-    }
-    window.addEventListener('open-dashboard-chat', handleOpenChat)
-    return () => window.removeEventListener('open-dashboard-chat', handleOpenChat)
   }, [])
 
   // Realtime subscription for order updates
@@ -235,7 +223,7 @@ export function DashboardContent({
             </p>
           </div>
           <button
-            onClick={() => setChatOpen(true)}
+            onClick={() => window.dispatchEvent(new CustomEvent('open-dashboard-chat'))}
             className={cn(
               'hidden items-center gap-2 rounded-lg border border-secondary-200 px-4 py-2.5 text-sm font-medium text-secondary-700 transition-all lg:flex',
               'hover:bg-secondary-50 hover:border-secondary-300 hover:shadow-sm',
@@ -312,51 +300,6 @@ export function DashboardContent({
           </div>
         </div>
       </div>
-
-      {/* ── Chat drawer (slide-over, all screen sizes) — always mounted to preserve history ── */}
-      {/* Backdrop */}
-      <div
-        className={cn(
-          'fixed inset-0 z-40 bg-black/30 transition-opacity',
-          chatOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
-        )}
-        onClick={() => setChatOpen(false)}
-        aria-hidden="true"
-      />
-      {/* Drawer panel — always rendered, translated off-screen when closed */}
-      <div
-        className={cn(
-          'fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl transition-transform duration-300 sm:max-w-[420px]',
-          chatOpen ? 'translate-x-0' : 'translate-x-full',
-        )}
-      >
-        <div className="flex items-center justify-between border-b border-secondary-200 px-4 py-3">
-          <h3 className="font-semibold text-secondary-900">AI Assistant</h3>
-          <button
-            onClick={() => setChatOpen(false)}
-            className="rounded-lg p-1.5 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-600 transition-colors"
-            aria-label="Close chat"
-          >
-            <PanelRightClose className="h-5 w-5" />
-          </button>
-        </div>
-        <ChatWindow
-          storeId={storeId}
-          storeName={storeName}
-          className="flex-1 rounded-none border-0"
-        />
-      </div>
-
-      {/* ── Floating chat button (mobile — always, desktop — only when chat closed) ── */}
-      {!chatOpen && (
-        <button
-          onClick={() => setChatOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-all hover:scale-105 hover:bg-primary-700 hover:shadow-xl"
-          aria-label="Open AI Chat"
-        >
-          <Bot className="h-6 w-6" />
-        </button>
-      )}
 
       {/* Order detail modal */}
       {selectedOrder && (
