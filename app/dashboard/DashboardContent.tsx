@@ -10,6 +10,8 @@ import {
   X,
   Check,
   Package,
+  MessageSquare,
+  PanelRightClose,
 } from 'lucide-react'
 import { cn, formatPrice, formatDate } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -109,7 +111,6 @@ export function DashboardContent({
         },
         async (payload) => {
           if (payload.eventType === 'INSERT') {
-            // Fetch the full order with relations
             const { data: newOrder } = await supabase
               .from('orders')
               .select(`
@@ -129,7 +130,6 @@ export function DashboardContent({
                 pendingOrders: prev.pendingOrders + 1,
               }))
 
-              // Play notification sound
               try {
                 audioRef.current?.play()
               } catch {
@@ -212,7 +212,6 @@ export function DashboardContent({
             order.id === orderId ? { ...order, status: newStatus } : order,
           ),
         )
-        // Update the selected order in the modal too
         setSelectedOrder((prev) =>
           prev?.id === orderId ? { ...prev, status: newStatus } : prev,
         )
@@ -225,52 +224,71 @@ export function DashboardContent({
 
   return (
     <>
-      <div className="flex h-[calc(100vh-3.5rem)] lg:h-screen">
-        {/* Left panel: stats + orders */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-secondary-200 bg-white px-6 py-4">
-            <div>
-              <h1 className="text-xl font-bold text-secondary-900">Dashboard</h1>
-              <p className="text-sm text-secondary-500">
-                Welcome back. Here is what is happening today.
-              </p>
-            </div>
+      {/* Main content — full width, no permanent chat panel */}
+      <div className="flex h-[calc(100vh-3.5rem)] flex-col lg:h-screen">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-secondary-200 bg-white px-6 py-5 lg:px-8">
+          <div>
+            <h1 className="text-2xl font-bold text-secondary-900">Dashboard</h1>
+            <p className="mt-0.5 text-sm text-secondary-500">
+              Welcome back. Here is what is happening today.
+            </p>
           </div>
+          <button
+            onClick={() => setChatOpen(true)}
+            className={cn(
+              'hidden items-center gap-2 rounded-lg border border-secondary-200 px-4 py-2.5 text-sm font-medium text-secondary-700 transition-all lg:flex',
+              'hover:bg-secondary-50 hover:border-secondary-300 hover:shadow-sm',
+            )}
+          >
+            <MessageSquare className="h-4 w-4" />
+            AI Assistant
+          </button>
+        </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Stats row */}
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              {statCards.map((stat) => (
-                <Card key={stat.label} padding="sm">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-                        stat.color,
-                      )}
-                    >
-                      <stat.icon className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-2xl font-bold text-secondary-900 leading-tight">
-                        {stat.value}
-                      </p>
-                      <p className="text-xs text-secondary-500 truncate">
-                        {stat.label}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto px-4 py-8 lg:px-8 space-y-8">
 
-            {/* Order Kanban board */}
-            <div>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-secondary-900">
-                  Order Board
-                </h2>
+            {/* ── Stats section ── */}
+            <section>
+              <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
+                {statCards.map((stat) => (
+                  <Card key={stat.label} padding="md" className="hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={cn(
+                          'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl',
+                          stat.color,
+                        )}
+                      >
+                        <stat.icon className="h-6 w-6" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-2xl font-bold text-secondary-900 leading-tight">
+                          {stat.value}
+                        </p>
+                        <p className="text-sm text-secondary-500 truncate">
+                          {stat.label}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </section>
+
+            {/* ── Order Board section ── */}
+            <section>
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-secondary-900">
+                    Order Board
+                  </h2>
+                  <p className="mt-0.5 text-sm text-secondary-500">
+                    Drag orders to advance their status
+                  </p>
+                </div>
                 <Badge variant="default">
                   {orders.length} order{orders.length !== 1 ? 's' : ''}
                 </Badge>
@@ -287,51 +305,53 @@ export function DashboardContent({
                   orders={orders}
                   onUpdateStatus={handleUpdateOrderStatus}
                   onSelectOrder={setSelectedOrder}
-                  compact
                 />
               )}
-            </div>
-          </div>
-        </div>
+            </section>
 
-        {/* Right panel: Chat (desktop) */}
-        <div className="hidden w-[35%] min-w-[360px] max-w-[480px] border-l border-secondary-200 lg:block">
-          <ChatWindow storeId={storeId} storeName={storeName} className="h-full rounded-none border-0" />
+          </div>
         </div>
       </div>
 
-      {/* Mobile: floating chat button */}
-      <button
-        onClick={() => setChatOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-700 lg:hidden"
-        aria-label="Open AI Chat"
-      >
-        <Bot className="h-6 w-6" />
-        <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
-          <span className="relative inline-flex h-3 w-3 rounded-full bg-primary-500" />
-        </span>
-      </button>
-
-      {/* Mobile: full-screen chat overlay */}
+      {/* ── Chat drawer (slide-over, all screen sizes) ── */}
       {chatOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white lg:hidden">
-          <div className="flex items-center justify-between border-b border-secondary-200 px-4 py-3">
-            <h3 className="font-semibold text-secondary-900">AI Assistant</h3>
-            <button
-              onClick={() => setChatOpen(false)}
-              className="rounded-lg p-1.5 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-600"
-              aria-label="Close chat"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <ChatWindow
-            storeId={storeId}
-            storeName={storeName}
-            className="flex-1 rounded-none border-0"
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-black/30 transition-opacity"
+            onClick={() => setChatOpen(false)}
+            aria-hidden="true"
           />
-        </div>
+          {/* Drawer panel */}
+          <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl sm:max-w-[420px]">
+            <div className="flex items-center justify-between border-b border-secondary-200 px-4 py-3">
+              <h3 className="font-semibold text-secondary-900">AI Assistant</h3>
+              <button
+                onClick={() => setChatOpen(false)}
+                className="rounded-lg p-1.5 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-600 transition-colors"
+                aria-label="Close chat"
+              >
+                <PanelRightClose className="h-5 w-5" />
+              </button>
+            </div>
+            <ChatWindow
+              storeId={storeId}
+              storeName={storeName}
+              className="flex-1 rounded-none border-0"
+            />
+          </div>
+        </>
+      )}
+
+      {/* ── Floating chat button (mobile — always, desktop — only when chat closed) ── */}
+      {!chatOpen && (
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-all hover:scale-105 hover:bg-primary-700 hover:shadow-xl"
+          aria-label="Open AI Chat"
+        >
+          <Bot className="h-6 w-6" />
+        </button>
       )}
 
       {/* Order detail modal */}

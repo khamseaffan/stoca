@@ -43,7 +43,7 @@ export function Badge({
 }
 
 const orderStatusMap: Record<OrderStatus, { variant: BadgeProps['variant']; label: string }> = {
-  PENDING: { variant: 'info', label: 'Pending' },
+  PENDING: { variant: 'warning', label: 'Pending' },
   CONFIRMED: { variant: 'info', label: 'Confirmed' },
   PREPARING: { variant: 'warning', label: 'Preparing' },
   READY_FOR_PICKUP: { variant: 'success', label: 'Ready for Pickup' },
