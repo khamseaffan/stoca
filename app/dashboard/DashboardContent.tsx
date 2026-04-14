@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge, OrderStatusBadge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 import { ChatWindow } from '@/components/chat/ChatWindow'
 import type { DashboardStats, OrderWithItems, OrderStatus } from '@/types'
 
@@ -76,6 +77,7 @@ export function DashboardContent({
   const [chatOpen, setChatOpen] = useState(false)
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const { toast } = useToast()
 
   // Initialize audio element
   useEffect(() => {
@@ -132,8 +134,17 @@ export function DashboardContent({
               try {
                 audioRef.current?.play()
               } catch {
-                console.log('New order notification sound')
+                // Autoplay blocked
               }
+
+              const name = newOrder.profile
+                ? `${newOrder.profile.first_name} ${newOrder.profile.last_name}`
+                : 'A customer'
+              toast({
+                title: `New order from ${name}`,
+                description: `${newOrder.order_items?.length ?? 0} items — $${Number(newOrder.total).toFixed(2)}`,
+                variant: 'info',
+              })
             }
           }
 
@@ -178,6 +189,9 @@ export function DashboardContent({
           ...prev,
           pendingOrders: Math.max(0, prev.pendingOrders - 1),
         }))
+        toast({ title: 'Order accepted', variant: 'success' })
+      } else {
+        toast({ title: 'Failed to accept order', variant: 'error' })
       }
 
       setUpdatingOrderId(null)

@@ -13,6 +13,7 @@ import {
   StickyNote,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 import { formatPrice, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -30,6 +31,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true)
   const [placing, setPlacing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
 
   // Order configuration
   const [orderType, setOrderType] = useState<OrderType>('PICKUP')
@@ -123,10 +125,12 @@ export default function CheckoutPage() {
 
     if (rpcError) {
       setError(rpcError.message || 'Failed to place order. Please try again.')
+      toast({ title: 'Failed to place order', description: rpcError.message, variant: 'error' })
       setPlacing(false)
       return
     }
 
+    toast({ title: 'Order placed!', description: 'Your order has been submitted.', variant: 'success' })
     setOrderId(data as string)
     setPlacing(false)
   }
