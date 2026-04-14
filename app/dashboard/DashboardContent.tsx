@@ -313,35 +313,39 @@ export function DashboardContent({
         </div>
       </div>
 
-      {/* ── Chat drawer (slide-over, all screen sizes) ── */}
-      {chatOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-black/30 transition-opacity"
+      {/* ── Chat drawer (slide-over, all screen sizes) — always mounted to preserve history ── */}
+      {/* Backdrop */}
+      <div
+        className={cn(
+          'fixed inset-0 z-40 bg-black/30 transition-opacity',
+          chatOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
+        )}
+        onClick={() => setChatOpen(false)}
+        aria-hidden="true"
+      />
+      {/* Drawer panel — always rendered, translated off-screen when closed */}
+      <div
+        className={cn(
+          'fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl transition-transform duration-300 sm:max-w-[420px]',
+          chatOpen ? 'translate-x-0' : 'translate-x-full',
+        )}
+      >
+        <div className="flex items-center justify-between border-b border-secondary-200 px-4 py-3">
+          <h3 className="font-semibold text-secondary-900">AI Assistant</h3>
+          <button
             onClick={() => setChatOpen(false)}
-            aria-hidden="true"
-          />
-          {/* Drawer panel */}
-          <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl sm:max-w-[420px]">
-            <div className="flex items-center justify-between border-b border-secondary-200 px-4 py-3">
-              <h3 className="font-semibold text-secondary-900">AI Assistant</h3>
-              <button
-                onClick={() => setChatOpen(false)}
-                className="rounded-lg p-1.5 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-600 transition-colors"
-                aria-label="Close chat"
-              >
-                <PanelRightClose className="h-5 w-5" />
-              </button>
-            </div>
-            <ChatWindow
-              storeId={storeId}
-              storeName={storeName}
-              className="flex-1 rounded-none border-0"
-            />
-          </div>
-        </>
-      )}
+            className="rounded-lg p-1.5 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-600 transition-colors"
+            aria-label="Close chat"
+          >
+            <PanelRightClose className="h-5 w-5" />
+          </button>
+        </div>
+        <ChatWindow
+          storeId={storeId}
+          storeName={storeName}
+          className="flex-1 rounded-none border-0"
+        />
+      </div>
 
       {/* ── Floating chat button (mobile — always, desktop — only when chat closed) ── */}
       {!chatOpen && (
