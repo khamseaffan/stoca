@@ -13,6 +13,7 @@ import {
   StickyNote,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/posthog'
 import { useToast } from '@/components/ui/Toast'
 import { formatPrice, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
@@ -131,6 +132,7 @@ export default function CheckoutPage() {
     }
 
     toast({ title: 'Order placed!', description: 'Your order has been submitted.', variant: 'success' })
+    trackEvent.orderPlaced(data as string, total)
     setOrderId(data as string)
     setPlacing(false)
   }

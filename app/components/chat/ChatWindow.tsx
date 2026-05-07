@@ -9,6 +9,7 @@ import {
   Trash2, Download, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { trackEvent } from '@/lib/posthog'
 import { ChatMessage } from './ChatMessage'
 import { ImageUploadPreview } from './ImageUploadPreview'
 
@@ -75,6 +76,7 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const trackedToolCallIdsRef = useRef<Set<string>>(new Set())
 
   const [hydrated, setHydrated] = useState(false)
 
@@ -168,12 +170,30 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
       if (!text && !selectedImage) return
 
       await sendMessage({ text: text || 'Scan this inventory image' })
+      trackEvent.aiChatMessageSent(storeId)
       setInputValue('')
       clearImage()
       inputRef.current?.focus()
     },
-    [inputValue, selectedImage, sendMessage, clearImage],
+    [inputValue, selectedImage, sendMessage, clearImage, storeId],
   )
+
+  // Track each completed tool execution exactly once.
+  useEffect(() => {
+    for (const message of messages) {
+      if (message.role !== 'assistant') continue
+      for (const part of message.parts ?? []) {
+        const partType = (part as { type?: string }).type
+        if (typeof partType !== 'string' || !partType.startsWith('tool-')) continue
+        const state = (part as { state?: string }).state
+        if (state !== 'output-available') continue
+        const toolCallId = (part as { toolCallId?: string }).toolCallId
+        if (!toolCallId || trackedToolCallIdsRef.current.has(toolCallId)) continue
+        trackedToolCallIdsRef.current.add(toolCallId)
+        trackEvent.aiToolExecuted(partType.slice('tool-'.length), storeId)
+      }
+    }
+  }, [messages, storeId])
 
   const isTyping =
     isLoading &&

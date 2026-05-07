@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { Package } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/posthog'
 import { ProductCard } from '@/components/commerce/ProductCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useToast } from '@/components/ui/Toast'
@@ -61,9 +62,10 @@ export function StoreProducts({ products, storeId }: StoreProductsProps) {
         toast({ title: 'Failed to add to cart', variant: 'error' })
       } else {
         toast({ title: 'Added to cart', variant: 'success' })
+        trackEvent.productAddedToCart(productId)
       }
     },
-    [storeId]
+    [storeId, toast]
   )
 
   return (

@@ -30,6 +30,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/posthog'
 import { cn, slugify, formatPrice } from '@/lib/utils'
 import type { StoreType, GlobalProduct } from '@/types'
 import { Button } from '@/components/ui/Button'
@@ -1498,8 +1499,10 @@ export default function OnboardingPage() {
 
         if (insertError) throw insertError
         setStoreId(data.id)
+        trackEvent.storeCreated(data.id)
       }
 
+      trackEvent.onboardingStepCompleted(0)
       goToStep(1)
     } catch (err: unknown) {
       const message =
@@ -1536,6 +1539,7 @@ export default function OnboardingPage() {
 
       if (updateError) throw updateError
 
+      trackEvent.onboardingStepCompleted(1)
       goToStep(2)
     } catch (err: unknown) {
       const message =
@@ -1660,6 +1664,7 @@ export default function OnboardingPage() {
 
   // Step 3: Next
   const handleProductsNext = useCallback(() => {
+    trackEvent.onboardingStepCompleted(2)
     goToStep(3)
   }, [goToStep])
 
@@ -1678,6 +1683,7 @@ export default function OnboardingPage() {
 
       if (updateError) throw updateError
 
+      trackEvent.onboardingStepCompleted(3)
       setLaunched(true)
     } catch (err: unknown) {
       const message =

@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Package } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/posthog'
 import { ProductCard } from '@/components/commerce/ProductCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { StoreProduct } from '@/types'
@@ -24,6 +25,10 @@ export function SearchProducts({
 }: SearchProductsProps) {
   const router = useRouter()
   const [toast, setToast] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (query) trackEvent.searchPerformed(query)
+  }, [query])
 
   const handleCategoryChange = useCallback(
     (category: string | null) => {
@@ -68,6 +73,7 @@ export function SearchProducts({
       setToast('Failed to add item to cart')
     } else {
       setToast('Added to cart')
+      trackEvent.productAddedToCart(productId)
     }
 
     setTimeout(() => setToast(null), 2500)

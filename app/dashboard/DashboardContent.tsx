@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn, formatPrice, formatDate } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/posthog'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge, OrderStatusBadge } from '@/components/ui/Badge'
@@ -203,6 +204,9 @@ export function DashboardContent({
         setSelectedOrder((prev) =>
           prev?.id === orderId ? { ...prev, status: newStatus } : prev,
         )
+        if (newStatus === 'CONFIRMED') {
+          trackEvent.orderAccepted(orderId)
+        }
       }
     },
     [],
