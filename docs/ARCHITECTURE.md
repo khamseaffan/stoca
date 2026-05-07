@@ -25,7 +25,7 @@ sequenceDiagram
     NextJS->>NextJS: Verify auth (Supabase JWT)
     NextJS->>DB: Fetch store context<br/>(5 parallel Prisma queries)
     Note over NextJS,DB: product count, pending orders,<br/>today's revenue, low stock items
-    NextJS->>Claude: streamText() with<br/>system prompt + 16 tools
+    NextJS->>Claude: streamText() with<br/>system prompt + 19 tools
     
     Claude-->>Browser: Stream text tokens<br/>(real-time via SSE)
     
@@ -131,7 +131,7 @@ stoca/
 │   │   └── products/page.tsx      # Product grid with stock indicators
 │   ├── onboarding/                # 4-step wizard: basics → hours → products → launch
 │   ├── api/ai/
-│   │   ├── chat/route.ts          # Claude streamText + 16 tools → Python
+│   │   ├── chat/route.ts          # Claude streamText + 19 tools → Python
 │   │   └── image/route.ts         # Image upload → Supabase Storage → Python scan
 │   ├── components/
 │   │   ├── chat/                  # ChatWindow, ChatMessage, ToolCallCard (showpiece)
@@ -180,3 +180,51 @@ The dashboard subscribes to the `orders` table filtered by `store_id`. When a cu
 ### Prisma Decimal fields require `Number()` conversion
 
 Prisma returns `Decimal` objects (not plain numbers) for `NUMERIC` columns. All server components that pass prices/totals to client components must call `Number(field)`. This is a Prisma 7 behavior — the adapter returns exact decimal types to prevent floating-point precision loss.
+
+## Next.js ↔ Python Tool Wiring
+
+The AI chat route (`app/api/ai/chat/route.ts`) defines 19 tools for Claude and delegates execution to the Python service via `callToolService()`. This section covers the integration details that are not obvious from reading either side in isolation.
+
+### Auth forwarding
+
+Next.js extracts the Supabase JWT from the user's session and forwards it in the `Authorization` header on every tool call. The Python middleware validates the JWT against Supabase and resolves the `store_id` from the owner's profile row — the Next.js side never sends `store_id` in the request body. This means the Python service is the single authority on store ownership: even if a malicious client somehow tampers with the request, the store context comes from the verified JWT, not from user-supplied parameters.
+
+```
+Next.js: session.access_token → Authorization: Bearer <jwt>
+Python:  jwt.sub → profiles.id → stores.owner_id → store_id
+```
+
+### Parameter conventions
+
+Tools follow consistent naming conventions for how they identify resources:
+
+| Pattern | Parameter | Python behavior | Example tools |
+|---|---|---|---|
+| **By name** | `product_name` | ILIKE fuzzy match against `store_products.name` | `update_product_price`, `remove_product`, `update_stock_quantity` |
+| **By UUID** | `product_id`, `order_id` | Exact match on primary key | `get_order_details`, `update_order_status` |
+| **By search query** | `query` | Semantic or text search | `search_store_products`, `add_product_from_catalog` |
+
+The catalog search tool (`add_product_from_catalog`) accepts a `query` string for fuzzy matching against the global catalog — it does not use `global_product_id`. This lets Claude add products by name ("add Coca-Cola at $2.50") without needing to look up IDs first.
+
+### Enrichment tools
+
+Three tools handle product data quality, making for impressive demo moments where the AI autonomously improves product listings:
+
+| Tool | What it does | Backend detail |
+|---|---|---|
+| `search_product_image` | Finds a product photo via the Pexels API and sets it as the product image | Falls back to a placeholder image if Pexels returns no results |
+| `enrich_product_description` | Generates a compelling product description | Uses Claude via the Python enrichment service (one of the few places Python calls Claude directly) |
+| `enrich_products_bulk` | Enriches multiple products at once — images, descriptions, or both | Caps at 20 products per call to avoid timeouts; accepts a `filter` param (`missing_images`, `missing_descriptions`, `all`) |
+
+These tools are particularly useful in a demo flow: the store owner asks "make my products look better" and the AI chains `enrich_products_bulk` to fill in missing images and descriptions across the entire catalog in one turn.
+
+### Error handling
+
+`callToolService()` catches all errors — both HTTP failures and network errors — and returns human-readable strings rather than throwing exceptions. This design is intentional: Claude receives the error as a tool result and can relay it conversationally ("I wasn't able to update that price — the product wasn't found") instead of the chat breaking with an unhandled exception.
+
+```typescript
+// On HTTP error:  "Error: 404 - Product 'xyz' not found in your store"
+// On network failure: "Error: Failed to reach AI service - ECONNREFUSED"
+```
+
+Both cases produce a string that Claude can interpret and explain to the store owner. The chat never crashes from a failed tool call.

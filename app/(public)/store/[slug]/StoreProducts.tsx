@@ -4,8 +4,10 @@ import { useState, useCallback, useMemo } from 'react'
 import { Package } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/posthog'
 import { ProductCard } from '@/components/commerce/ProductCard'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 import type { StoreProduct } from '@/types'
 
 interface StoreProductsProps {
@@ -15,7 +17,7 @@ interface StoreProductsProps {
 
 export function StoreProducts({ products, storeId }: StoreProductsProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const categories = useMemo(() => {
     const cats = new Set<string>()
@@ -57,14 +59,13 @@ export function StoreProducts({ products, storeId }: StoreProductsProps) {
       )
 
       if (error) {
-        setToast('Failed to add item to cart')
+        toast({ title: 'Failed to add to cart', variant: 'error' })
       } else {
-        setToast('Added to cart')
+        toast({ title: 'Added to cart', variant: 'success' })
+        trackEvent.productAddedToCart(productId)
       }
-
-      setTimeout(() => setToast(null), 2500)
     },
-    [storeId]
+    [storeId, toast]
   )
 
   return (
@@ -123,12 +124,6 @@ export function StoreProducts({ products, storeId }: StoreProductsProps) {
         />
       )}
 
-      {/* Toast Notification */}
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-secondary-900 px-5 py-3 text-sm font-medium text-white shadow-lg">
-          {toast}
-        </div>
-      )}
     </div>
   )
 }

@@ -117,7 +117,6 @@ export default function ProductsPage() {
             size="sm"
             onClick={() => {
               window.dispatchEvent(new CustomEvent('open-dashboard-chat'))
-              window.location.href = '/dashboard'
             }}
           >
             <Bot className="h-4 w-4" />

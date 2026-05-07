@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Bot, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ToolCallCard } from './ToolCallCard'
@@ -19,61 +21,64 @@ function formatTime(date: Date): string {
   }).format(date)
 }
 
-function renderTextContent(text: string) {
-  if (!text) return null
-  const lines = text.split('\n')
-
-  return lines.map((line, lineIndex) => {
-    const trimmed = line.trim()
-    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-      return (
-        <div key={lineIndex} className="flex gap-2 pl-1">
-          <span className="shrink-0 mt-1.5 h-1.5 w-1.5 rounded-full bg-current opacity-50" />
-          <span>{renderInlineFormatting(trimmed.slice(2))}</span>
-        </div>
-      )
-    }
-    if (/^\d+\.\s/.test(trimmed)) {
-      const match = trimmed.match(/^(\d+\.)\s(.*)/)
-      if (match) {
-        return (
-          <div key={lineIndex} className="flex gap-2 pl-1">
-            <span className="shrink-0 font-medium opacity-70">{match[1]}</span>
-            <span>{renderInlineFormatting(match[2])}</span>
-          </div>
-        )
-      }
-    }
-    if (trimmed === '') return <div key={lineIndex} className="h-2" />
-    return <p key={lineIndex}>{renderInlineFormatting(line)}</p>
-  })
-}
-
-function renderInlineFormatting(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/)
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
-    }
-    const codeParts = part.split(/(`[^`]+`)/)
-    return codeParts.map((codePart, j) => {
-      if (codePart.startsWith('`') && codePart.endsWith('`')) {
-        return (
-          <code key={`${i}-${j}`} className="rounded bg-secondary-100 px-1 py-0.5 text-[0.85em] font-mono text-secondary-700">
-            {codePart.slice(1, -1)}
-          </code>
-        )
-      }
-      return <span key={`${i}-${j}`}>{codePart}</span>
-    })
-  })
+const markdownComponents = {
+  p: ({ children }: { children?: React.ReactNode }) => (
+    <p className="mb-1 last:mb-0">{children}</p>
+  ),
+  strong: ({ children }: { children?: React.ReactNode }) => (
+    <strong className="font-semibold">{children}</strong>
+  ),
+  code: ({ children }: { children?: React.ReactNode }) => (
+    <code className="rounded bg-secondary-100 px-1 py-0.5 text-[0.85em] font-mono text-secondary-700">{children}</code>
+  ),
+  pre: ({ children }: { children?: React.ReactNode }) => (
+    <pre className="my-2 overflow-x-auto rounded-lg bg-secondary-50 p-3 text-xs">{children}</pre>
+  ),
+  ul: ({ children }: { children?: React.ReactNode }) => (
+    <ul className="ml-4 list-disc space-y-0.5">{children}</ul>
+  ),
+  ol: ({ children }: { children?: React.ReactNode }) => (
+    <ol className="ml-4 list-decimal space-y-0.5">{children}</ol>
+  ),
+  li: ({ children }: { children?: React.ReactNode }) => (
+    <li className="pl-1">{children}</li>
+  ),
+  h1: ({ children }: { children?: React.ReactNode }) => (
+    <p className="mt-2 text-base font-bold">{children}</p>
+  ),
+  h2: ({ children }: { children?: React.ReactNode }) => (
+    <p className="mt-2 font-bold">{children}</p>
+  ),
+  h3: ({ children }: { children?: React.ReactNode }) => (
+    <p className="mt-1.5 font-semibold">{children}</p>
+  ),
+  table: ({ children }: { children?: React.ReactNode }) => (
+    <div className="my-2 overflow-x-auto rounded-lg border border-secondary-200">
+      <table className="w-full text-xs border-collapse">{children}</table>
+    </div>
+  ),
+  thead: ({ children }: { children?: React.ReactNode }) => (
+    <thead className="bg-secondary-50">{children}</thead>
+  ),
+  th: ({ children }: { children?: React.ReactNode }) => (
+    <th className="px-3 py-2 text-left font-semibold text-secondary-700 border-b border-secondary-200">{children}</th>
+  ),
+  td: ({ children }: { children?: React.ReactNode }) => (
+    <td className="px-3 py-2 text-secondary-600 border-b border-secondary-100">{children}</td>
+  ),
+  a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
+    <a href={href} className="text-primary-600 underline hover:text-primary-700" target="_blank" rel="noopener noreferrer">{children}</a>
+  ),
+  blockquote: ({ children }: { children?: React.ReactNode }) => (
+    <blockquote className="border-l-2 border-secondary-300 pl-3 italic text-secondary-600">{children}</blockquote>
+  ),
+  hr: () => <hr className="my-2 border-secondary-200" />,
 }
 
 export function ChatMessage({ message, isLast }: ChatMessageProps) {
   const isUser = message.role === 'user'
   const timestamp = useMemo(() => formatTime(new Date()), [])
 
-  // Extract text and tool parts from the v6 parts array
   const textContent = (message.parts ?? [])
     .filter((p) => p.type === 'text')
     .map((p) => (p as { text: string }).text)
@@ -83,7 +88,6 @@ export function ChatMessage({ message, isLast }: ChatMessageProps) {
     .filter((p) => p.type.startsWith('tool-') || p.type === 'dynamic-tool')
     .map((p) => p as unknown as { type: string; toolCallId: string; toolName?: string; state: string; input?: unknown; output?: unknown; errorText?: string })
 
-  // Extract file parts for images
   const fileParts = (message.parts ?? [])
     .filter((p) => p.type === 'file')
     .map((p) => p as unknown as { type: 'file'; data: string; mediaType: string })
@@ -117,13 +121,16 @@ export function ChatMessage({ message, isLast }: ChatMessageProps) {
             className={cn(
               'rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition-colors duration-200',
               isUser
-                ? 'bg-primary-600 text-white rounded-br-sm'
+                ? 'bg-primary-600 text-white rounded-br-sm [&_code]:bg-primary-700/40 [&_code]:text-primary-100'
                 : 'bg-white border border-secondary-200 text-secondary-800 rounded-bl-sm shadow-sm',
             )}
           >
-            <div className={cn('space-y-1', isUser ? '[&_code]:bg-primary-700/40 [&_code]:text-primary-100' : '')}>
-              {renderTextContent(textContent)}
-            </div>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={markdownComponents as never}
+            >
+              {textContent}
+            </ReactMarkdown>
           </div>
         )}
 

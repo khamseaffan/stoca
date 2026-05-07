@@ -3,8 +3,13 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { Bot, SendHorizontal, Camera } from 'lucide-react'
+import type { UIMessage } from 'ai'
+import {
+  Bot, SendHorizontal, Camera, AlertCircle, RefreshCw,
+  Trash2, Download, AlertTriangle,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { trackEvent } from '@/lib/posthog'
 import { ChatMessage } from './ChatMessage'
 import { ImageUploadPreview } from './ImageUploadPreview'
 
@@ -14,26 +19,99 @@ interface ChatWindowProps {
   className?: string
 }
 
+const STORAGE_KEY_PREFIX = 'stoca-chat-'
+const MAX_MESSAGES_WARNING = 50
+const MAX_MESSAGES_HARD_LIMIT = 100
+
+function loadMessages(storeId: string): UIMessage[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${storeId}`)
+    if (!raw) return []
+    return JSON.parse(raw)
+  } catch {
+    return []
+  }
+}
+
+function saveMessages(storeId: string, messages: UIMessage[]) {
+  if (typeof window === 'undefined') return
+  try {
+    if (messages.length === 0) {
+      localStorage.removeItem(`${STORAGE_KEY_PREFIX}${storeId}`)
+    } else {
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}${storeId}`, JSON.stringify(messages))
+    }
+  } catch {
+    // localStorage full — silently ignore
+  }
+}
+
+function exportChat(messages: UIMessage[], storeName: string) {
+  const lines = messages.map((m) => {
+    const role = m.role === 'user' ? 'You' : 'AI Assistant'
+    const text = (m.parts ?? [])
+      .filter((p) => p.type === 'text')
+      .map((p) => (p as { text: string }).text)
+      .join('')
+    return `[${role}]\n${text}\n`
+  })
+
+  const content = `Chat Export — ${storeName}\n${'='.repeat(40)}\n\n${lines.join('\n')}`
+  const blob = new Blob([content], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `stoca-chat-${storeName.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState('')
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const trackedToolCallIdsRef = useRef<Set<string>>(new Set())
+
+  const [hydrated, setHydrated] = useState(false)
 
   const transport = useMemo(
     () => new DefaultChatTransport({ api: '/api/ai/chat', body: { storeId } }),
     [storeId],
   )
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, setMessages, status, error } = useChat({
     id: `store-${storeId}`,
     transport,
   })
 
   const isLoading = status === 'submitted' || status === 'streaming'
+
+  // Restore messages from localStorage after hydration (client-only)
+  useEffect(() => {
+    const saved = loadMessages(storeId)
+    if (saved.length > 0) {
+      setMessages(saved)
+    }
+    setHydrated(true)
+  }, [storeId, setMessages])
+
+  // Persist messages to localStorage on change (only after hydration)
+  useEffect(() => {
+    if (!hydrated) return
+    saveMessages(storeId, messages)
+  }, [messages, storeId, hydrated])
+
+  // Auto-focus chat input on mount
+  useEffect(() => {
+    const timer = setTimeout(() => inputRef.current?.focus(), 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -43,11 +121,20 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
   // Cleanup object URL on unmount or image change
   useEffect(() => {
     return () => {
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview)
-      }
+      if (imagePreview) URL.revokeObjectURL(imagePreview)
     }
   }, [imagePreview])
+
+  const handleClearChat = useCallback(() => {
+    setMessages([])
+    saveMessages(storeId, [])
+    setShowClearConfirm(false)
+    inputRef.current?.focus()
+  }, [storeId, setMessages])
+
+  const handleExport = useCallback(() => {
+    exportChat(messages, storeName)
+  }, [messages, storeName])
 
   const handleImageSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,19 +170,38 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
       if (!text && !selectedImage) return
 
       await sendMessage({ text: text || 'Scan this inventory image' })
+      trackEvent.aiChatMessageSent(storeId)
       setInputValue('')
       clearImage()
       inputRef.current?.focus()
     },
-    [inputValue, selectedImage, sendMessage, clearImage],
+    [inputValue, selectedImage, sendMessage, clearImage, storeId],
   )
 
-  // Determine if the assistant is typing
+  // Track each completed tool execution exactly once.
+  useEffect(() => {
+    for (const message of messages) {
+      if (message.role !== 'assistant') continue
+      for (const part of message.parts ?? []) {
+        const partType = (part as { type?: string }).type
+        if (typeof partType !== 'string' || !partType.startsWith('tool-')) continue
+        const state = (part as { state?: string }).state
+        if (state !== 'output-available') continue
+        const toolCallId = (part as { toolCallId?: string }).toolCallId
+        if (!toolCallId || trackedToolCallIdsRef.current.has(toolCallId)) continue
+        trackedToolCallIdsRef.current.add(toolCallId)
+        trackEvent.aiToolExecuted(partType.slice('tool-'.length), storeId)
+      }
+    }
+  }, [messages, storeId])
+
   const isTyping =
     isLoading &&
     (messages.length === 0 || messages[messages.length - 1]?.role === 'user')
 
   const canSend = (inputValue.trim().length > 0 || selectedImage !== null) && !isLoading
+  const isNearLimit = messages.length >= MAX_MESSAGES_WARNING
+  const isAtLimit = messages.length >= MAX_MESSAGES_HARD_LIMIT
 
   return (
     <div
@@ -115,11 +221,74 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
           </h3>
           <p className="text-xs text-secondary-500">AI Assistant</p>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-xs text-secondary-500">Online</span>
+        <div className="flex items-center gap-1">
+          {messages.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={handleExport}
+                className="rounded-lg p-1.5 text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 transition-colors"
+                title="Export chat"
+              >
+                <Download className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(true)}
+                className="rounded-lg p-1.5 text-secondary-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                title="Clear chat"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </>
+          )}
+          <div className="flex items-center gap-1.5 ml-1">
+            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-xs text-secondary-500">Online</span>
+          </div>
         </div>
       </div>
+
+      {/* Clear confirmation bar */}
+      {showClearConfirm && (
+        <div className="flex items-center justify-between gap-2 border-b border-red-200 bg-red-50 px-4 py-2">
+          <span className="text-xs text-red-700">Clear entire chat history?</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowClearConfirm(false)}
+              className="rounded px-2 py-1 text-xs text-secondary-600 hover:bg-secondary-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleClearChat}
+              className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700 transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Size warning */}
+      {isNearLimit && !isAtLimit && (
+        <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+          <span className="text-xs text-amber-700">
+            Chat is getting long ({messages.length} messages). Consider clearing or exporting.
+          </span>
+        </div>
+      )}
+      {isAtLimit && (
+        <div className="flex items-center gap-2 border-b border-red-200 bg-red-50 px-4 py-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0" />
+          <span className="text-xs text-red-700">
+            Chat limit reached ({messages.length} messages). Please clear to continue.
+          </span>
+        </div>
+      )}
 
       {/* Messages area */}
       <div className="chat-scroll flex-1 overflow-y-auto px-4 py-4 space-y-4">
@@ -186,6 +355,36 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
           </div>
         )}
 
+        {error && (
+          <div className="flex gap-2.5 justify-start">
+            <div className="shrink-0 mt-1">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-100">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+              </div>
+            </div>
+            <div className="rounded-2xl rounded-bl-sm border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+              <p>Something went wrong. Please try again.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')
+                  if (lastUserMsg) {
+                    const textPart = (lastUserMsg.parts ?? []).find((p) => p.type === 'text') as { text: string } | undefined
+                    if (textPart?.text) {
+                      setInputValue(textPart.text)
+                      inputRef.current?.focus()
+                    }
+                  }
+                }}
+                className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800 transition-colors"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Retry last message
+              </button>
+            </div>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -221,23 +420,23 @@ export function ChatWindow({ storeId, storeName, className }: ChatWindowProps) {
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ask your AI assistant..."
+            placeholder={isAtLimit ? 'Clear chat to continue...' : 'Ask your AI assistant...'}
             className={cn(
               'flex-1 rounded-full bg-secondary-100 border-0 px-4 py-2.5 text-sm text-secondary-900',
               'placeholder:text-secondary-400',
               'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white',
               'transition-all duration-200',
             )}
-            disabled={isLoading}
+            disabled={isLoading || isAtLimit}
           />
 
           <button
             type="submit"
-            disabled={!canSend}
+            disabled={!canSend || isAtLimit}
             className={cn(
               'shrink-0 flex items-center justify-center rounded-full p-2.5',
               'transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1',
-              canSend
+              canSend && !isAtLimit
                 ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm hover:shadow'
                 : 'bg-secondary-100 text-secondary-300 cursor-not-allowed',
             )}
