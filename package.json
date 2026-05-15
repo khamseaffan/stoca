@@ -6,6 +6,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "ci:web": "npm run db:generate && npm run typecheck && npm run build",
     "db:generate": "prisma generate",
     "db:pull": "prisma db pull",
     "db:push": "prisma db push",
