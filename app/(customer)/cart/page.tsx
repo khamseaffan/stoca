@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Store } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { firstRenderableImageUrl } from '@/lib/images'
 import { formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -210,10 +211,7 @@ export default function CartPage() {
             <div className="divide-y divide-secondary-100">
               {group.items.map((item) => {
                 const product = item.store_product
-                const imageUrl =
-                  product.image_urls && product.image_urls.length > 0
-                    ? product.image_urls[0]
-                    : null
+                const imageUrl = firstRenderableImageUrl(product.image_urls)
                 const lineTotal = item.captured_price * item.quantity
                 const isUpdating = updatingIds.has(item.id)
 

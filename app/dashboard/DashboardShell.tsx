@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Package,
+  Settings,
   Bot,
   ExternalLink,
   LogOut,
@@ -23,6 +24,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/dashboard/products', label: 'Products', icon: Package },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ] as const
 
 interface DashboardShellProps {

@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { X, Plus, Minus, Trash2, ShoppingBag, Package } from 'lucide-react'
+import { firstRenderableImageUrl } from '@/lib/images'
 import { cn, formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import type { CartWithItems } from '@/types'
@@ -184,14 +185,15 @@ interface CartItemRowProps {
 function CartItemRow({ item, onUpdateQuantity, onRemoveItem }: CartItemRowProps) {
   const product = item.store_product
   const lineTotal = item.captured_price * item.quantity
+  const imageUrl = firstRenderableImageUrl(product.image_urls)
 
   return (
     <div className="flex gap-3">
       {/* Image */}
       <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-secondary-100">
-        {product.image_urls.length > 0 ? (
+        {imageUrl ? (
           <Image
-            src={product.image_urls[0]}
+            src={imageUrl}
             alt={product.name}
             width={64}
             height={64}

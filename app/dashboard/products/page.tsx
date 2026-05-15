@@ -9,6 +9,7 @@ import {
   Bot,
   AlertTriangle,
 } from 'lucide-react'
+import { firstRenderableImageUrl } from '@/lib/images'
 import { cn, formatPrice } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { Card } from '@/components/ui/Card'
@@ -227,6 +228,7 @@ export default function ProductsPage() {
               const stock = getStockStatus(product)
               const isOutOfStock =
                 product.quantity === 0 || !product.is_available
+              const imageUrl = firstRenderableImageUrl(product.image_urls)
 
               return (
                 <Card
@@ -239,9 +241,9 @@ export default function ProductsPage() {
                 >
                   {/* Image */}
                   <div className="aspect-square bg-secondary-100 relative overflow-hidden">
-                    {product.image_urls.length > 0 ? (
+                    {imageUrl ? (
                       <Image
-                        src={product.image_urls[0]}
+                        src={imageUrl}
                         alt={product.name}
                         fill
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"

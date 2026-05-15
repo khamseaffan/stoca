@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { Package, Plus } from 'lucide-react'
+import { firstRenderableImageUrl } from '@/lib/images'
 import { cn, formatPrice } from '@/lib/utils'
 import type { StoreProduct } from '@/types'
 
@@ -26,6 +27,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           100,
       )
     : 0
+  const imageUrl = firstRenderableImageUrl(product.image_urls)
 
   return (
     <div
@@ -36,9 +38,9 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
     >
       {/* Image area */}
       <div className="aspect-square bg-secondary-100 relative overflow-hidden">
-        {product.image_urls.length > 0 ? (
+        {imageUrl ? (
           <Image
-            src={product.image_urls[0]}
+            src={imageUrl}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
