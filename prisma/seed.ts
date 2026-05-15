@@ -586,7 +586,7 @@ async function main() {
   }
 
   console.log(`\n--- Seed complete ---`)
-  console.log(`Owner: ${OWNER.email}`)
+  console.log(`Owners: ${OWNERS.map((o) => o.email).join(', ')}`)
   console.log(`Customers: ${CUSTOMERS.length}`)
   console.log(`Stores: ${STORES.length}`)
   console.log(`Total orders: ${totalOrders}`)
