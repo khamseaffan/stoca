@@ -12,7 +12,7 @@ Stoca is an AI-native local commerce platform. One store owner, zero tech skills
 ## Tech Stack
 
 - **Frontend**: Next.js 16 (App Router) + TailwindCSS 4.2 + TypeScript 5.8
-- **AI**: Vercel AI SDK v6 + Anthropic Claude (streaming chat with 19 tools)
+- **AI**: Vercel AI SDK v6 + Anthropic Claude (streaming chat with 55 tools)
 - **ORM**: Prisma 7 (pure TS, PrismaPg adapter) for type-safe database access
 - **Database**: Supabase (PostgreSQL + pgvector + Auth + Storage + Realtime)
 - **Tool Service**: Python 3.12 / FastAPI (vision, semantic search, catalog enrichment)
@@ -20,7 +20,7 @@ Stoca is an AI-native local commerce platform. One store owner, zero tech skills
 
 ## Features
 
-- **19 AI tools** including 3 product enrichment tools (description rewriting, tag generation, SEO optimization)
+- **55 AI tools** including product management, promotions, inventory analytics, orders, store settings, vision scanning, and catalog enrichment
 - **Drag-and-drop Kanban order board** for visual order management on the dashboard
 - **Toast notification system** for real-time user feedback across the app
 - **AI-powered description rewriting** — rewrite product descriptions in one click via Claude
