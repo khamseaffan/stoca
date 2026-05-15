@@ -25,13 +25,13 @@ sequenceDiagram
     NextJS->>NextJS: Verify auth (Supabase JWT)
     NextJS->>DB: Fetch store context<br/>(5 parallel Prisma queries)
     Note over NextJS,DB: product count, pending orders,<br/>today's revenue, low stock items
-    NextJS->>Claude: streamText() with<br/>system prompt + 19 tools
+    NextJS->>Claude: streamText() with<br/>system prompt + 55 tools
     
     Claude-->>Browser: Stream text tokens<br/>(real-time via SSE)
     
     Note over Claude: Claude decides to call a tool
     Claude->>NextJS: Tool call: get_low_stock_alerts({})
-    NextJS->>Python: POST /api/tools/low-stock<br/>{ store_id, jwt }
+    NextJS->>Python: POST /api/tools/low-stock-alerts<br/>{ jwt }
     Python->>DB: Query low stock products
     DB-->>Python: Results
     Python-->>NextJS: JSON response
@@ -131,7 +131,7 @@ stoca/
 │   │   └── products/page.tsx      # Product grid with stock indicators
 │   ├── onboarding/                # 4-step wizard: basics → hours → products → launch
 │   ├── api/ai/
-│   │   ├── chat/route.ts          # Claude streamText + 19 tools → Python
+│   │   ├── chat/route.ts          # Claude streamText + 56 tools → Python
 │   │   └── image/route.ts         # Image upload → Supabase Storage → Python scan
 │   ├── components/
 │   │   ├── chat/                  # ChatWindow, ChatMessage, ToolCallCard (showpiece)
@@ -183,7 +183,7 @@ Prisma returns `Decimal` objects (not plain numbers) for `NUMERIC` columns. All 
 
 ## Next.js ↔ Python Tool Wiring
 
-The AI chat route (`app/api/ai/chat/route.ts`) defines 19 tools for Claude and delegates execution to the Python service via `callToolService()`. This section covers the integration details that are not obvious from reading either side in isolation.
+The AI chat route (`app/api/ai/chat/route.ts`) defines 56 tools for Claude and delegates execution to the Python service via `callToolService()`. The Python service keeps `app/routers/tools.py` as a thin aggregator and places grouped handlers in `app/routers/tool_modules/` for products, store settings, promotions, orders, analytics, vision, and enrichment.
 
 ### Auth forwarding
 
@@ -200,7 +200,7 @@ Tools follow consistent naming conventions for how they identify resources:
 
 | Pattern | Parameter | Python behavior | Example tools |
 |---|---|---|---|
-| **By name** | `product_name` | ILIKE fuzzy match against `store_products.name` | `update_product_price`, `remove_product`, `update_stock_quantity` |
+| **By name** | `product_name` | ILIKE fuzzy match against `store_products.name` | `update_product_price`, `update_product_details`, `remove_product`, `update_stock_quantity` |
 | **By UUID** | `product_id`, `order_id` | Exact match on primary key | `get_order_details`, `update_order_status` |
 | **By search query** | `query` | Semantic or text search | `search_store_products`, `add_product_from_catalog` |
 

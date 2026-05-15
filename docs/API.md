@@ -4,7 +4,7 @@
 
 ### `POST /api/ai/chat`
 
-Streaming AI chat endpoint. Authenticates the store owner, fetches live store context via Prisma (product count, pending orders, today's revenue, low stock), builds a dynamic system prompt, then calls Claude via `streamText()` with 19 tools. Each tool delegates execution to the Python AI service.
+Streaming AI chat endpoint. Authenticates the store owner, fetches live store context via Prisma (product count, pending orders, today's revenue, low stock), builds a dynamic system prompt, then calls Claude via `streamText()` with 55 tools. Each tool delegates execution to the Python AI service.
 
 **Auth**: Required — must be the owner of the specified store.
 
@@ -37,25 +37,61 @@ data: {"type":"text-delta","textDelta":"You have 1 product running low: **Organi
 data: {"type":"finish","finishReason":"stop"}
 ```
 
-**Tools** (19 total, each defined with zod input schemas):
+**Tools** (55 total, each defined with zod input schemas):
 
 | Tool | Description | Input Schema |
 |---|---|---|
 | `search_store_products` | Search products by name/category | `{ query: string }` |
-| `update_product_price` | Update a product's price | `{ product_id: string, new_price: number }` |
-| `add_product_from_catalog` | Add a global catalog product to the store | `{ global_product_id: string, price: number }` |
+| `list_store_products` | List products with pagination | `{ page?: number, per_page?: number }` |
+| `update_product_price` | Update a product's price | `{ product_name: string, new_price: number }` |
+| `update_product_details` | Update product metadata | `{ product_name: string, new_name?, description?, category?, subcategory?, compare_at_price? }` |
+| `add_product_from_catalog` | Add a global catalog product to the store | `{ query: string, price: number }` |
 | `add_custom_product` | Add a product not in the catalog | `{ name, price, category, description?, quantity }` |
-| `remove_product` | Remove a product (confirms first) | `{ product_id: string }` |
-| `update_stock_quantity` | Update stock count | `{ product_id: string, quantity: number }` |
+| `remove_product` | Remove a product (confirms first) | `{ product_name: string }` |
+| `set_product_availability` | Publish or hide a product | `{ product_name: string, is_available: boolean }` |
+| `set_featured_product` | Feature or unfeature a product | `{ product_name: string, is_featured: boolean }` |
+| `update_stock_quantity` | Update stock count | `{ product_name: string, quantity: number }` |
+| `update_low_stock_threshold` | Update stock alert threshold | `{ product_name: string, threshold: number }` |
 | `get_low_stock_alerts` | List products below threshold | `{}` |
+| `get_inventory_summary` | Inventory health and value summary | `{}` |
+| `get_restock_recommendations` | Recommend products to restock | `{ days?: number, limit?: number }` |
+| `bulk_update_stock` | Update stock for multiple products | `{ updates: { product_name, quantity }[] }` |
+| `mark_out_of_stock` | Set stock to zero, optionally hide product | `{ product_name, hide_product? }` |
+| `find_stale_inventory` | Find stocked products with no recent sales | `{ days?: number, limit?: number }` |
+| `get_inventory_value_by_category` | Inventory value by category | `{}` |
+| `bulk_update_prices` | Bulk price changes by category or product list | `{ product_names?, category?, percent_change?, fixed_change?, set_price? }` |
+| `find_products_missing_data` | Find missing images/descriptions/categories or price anomalies | `{ filter }` |
+| `duplicate_product_check` | Find likely duplicate products | `{ limit?: number }` |
+| `suggest_product_categories` | Suggest category cleanup | `{ limit?: number }` |
+| `set_product_images_bulk` | Fill missing product images in batches | `{ filter, limit?: number }` |
 | `update_store_hours` | Update operating hours | `{ hours: Record<string, { open, close }> }` |
 | `update_store_info` | Update store name/description/phone | `{ name?, description?, phone? }` |
-| `create_promotion` | Create a discount promotion | `{ product_id?, title, discount_percent?, discount_amount? }` |
+| `update_delivery_settings` | Update pickup/delivery modes, radius, fee, and minimum order | `{ pickup_enabled?, delivery_enabled?, delivery_radius_km?, delivery_fee?, minimum_order? }` |
+| `update_store_address` | Update address and coordinates | `{ street_address?, city?, state?, zipcode?, country?, latitude?, longitude? }` |
+| `set_store_active_status` | Launch or pause storefront | `{ is_active: boolean }` |
+| `update_store_branding` | Update logo/banner URLs | `{ logo_url?, banner_url? }` |
+| `create_promotion` | Create a discount promotion | `{ product_name?, title, discount_percent?, discount_amount?, start_date?, end_date? }` |
+| `list_promotions` | List active/scheduled/expired/inactive promotions | `{ status?, limit? }` |
+| `get_promotion_details` | Get one promotion | `{ promotion_id?, title? }` |
+| `update_promotion` | Update promotion details | `{ promotion_id?, title?, title_new?, product_name?, apply_store_wide?, discount_percent?, discount_amount?, start_date?, end_date?, is_active? }` |
+| `deactivate_promotion` | Deactivate a promotion | `{ promotion_id?, title? }` |
+| `reactivate_promotion` | Reactivate a promotion | `{ promotion_id?, title? }` |
+| `get_promotion_performance` | Estimate promotion sales performance | `{ promotion_id?, title? }` |
 | `get_recent_orders` | Get latest orders | `{ limit: number }` |
 | `get_order_details` | Get full order with items | `{ order_id: string }` |
 | `update_order_status` | Change order status | `{ order_id: string, status: OrderStatus }` |
+| `list_orders_by_status` | List orders by status | `{ status, limit? }` |
+| `find_delayed_orders` | Find open orders waiting too long | `{ older_than_minutes?, limit? }` |
+| `add_order_note` | Add internal note to order | `{ order_id, note }` |
+| `get_customer_order_history` | Get customer order history | `{ customer_email?, customer_name?, limit? }` |
+| `cancel_order` | Cancel an open order, no refund | `{ order_id }` |
 | `get_sales_summary` | Revenue/order stats | `{ period: 'today' \| 'week' \| 'month' }` |
 | `get_top_products` | Best selling products | `{ limit: number }` |
+| `compare_sales_periods` | Compare current vs previous period | `{ period }` |
+| `get_category_sales_summary` | Sales by category | `{ period?, limit? }` |
+| `get_slow_moving_products` | Products with low sales velocity | `{ days?, limit? }` |
+| `get_customer_summary` | Customer and top-customer summary | `{ period?, limit? }` |
+| `get_daily_business_brief` | Daily revenue/orders/inventory/promo brief | `{}` |
 | `process_inventory_image` | AI vision scan | `{ image_url: string }` |
 | `search_product_image` | Find and set a product image from the web | `{ product_name: string, category?: string }` |
 | `enrich_product_description` | Generate AI-written product description | `{ product_name: string }` |
@@ -191,6 +227,15 @@ All tool endpoints return: `{"success": bool, "result": str}` (result is JSON-st
 { "success": false, "result": "Multiple matches: ['Whole Milk', '2% Milk']. Which one?" }
 ```
 
+#### `POST /api/tools/update-product-details`
+```json
+// Request
+{ "product_name": "Whole Milk", "category": "Dairy", "compare_at_price": 6.49 }
+
+// Response
+{ "success": true, "result": "Updated Whole Milk: category, compare_at_price." }
+```
+
 #### `POST /api/tools/add-from-catalog`
 ```json
 // Request
@@ -218,6 +263,24 @@ All tool endpoints return: `{"success": bool, "result": str}` (result is JSON-st
 { "success": true, "result": "Removed Discontinued Item from your store." }
 ```
 
+#### `POST /api/tools/set-product-availability`
+```json
+// Request
+{ "product_name": "Seasonal Cookies", "is_available": false }
+
+// Response
+{ "success": true, "result": "Set Seasonal Cookies to hidden." }
+```
+
+#### `POST /api/tools/set-featured-product`
+```json
+// Request
+{ "product_name": "Sourdough Bread", "is_featured": true }
+
+// Response
+{ "success": true, "result": "Set Sourdough Bread to featured." }
+```
+
 #### `POST /api/tools/update-stock`
 ```json
 // Request
@@ -227,12 +290,29 @@ All tool endpoints return: `{"success": bool, "result": str}` (result is JSON-st
 { "success": true, "result": "Updated Organic Eggs stock: 12 → 50" }
 ```
 
+#### `POST /api/tools/update-low-stock-threshold`
+```json
+// Request
+{ "product_name": "Organic Eggs", "threshold": 10 }
+
+// Response
+{ "success": true, "result": "Updated Organic Eggs low-stock threshold: 5 → 10" }
+```
+
 #### `POST /api/tools/low-stock-alerts`
 ```json
 // Request — no body required
 
 // Response
 { "success": true, "result": "[{\"id\": \"uuid\", \"name\": \"Organic Eggs\", \"quantity\": 2, \"threshold\": 5}]" }
+```
+
+#### `POST /api/tools/inventory-summary`
+```json
+// Request — no body required
+
+// Response
+{ "success": true, "result": "{\"active_products\": 42, \"hidden_products\": 3, \"out_of_stock\": 2, \"low_stock\": 5, \"units_on_hand\": 640, \"retail_value\": 3287.45, \"categories\": [...]}" }
 ```
 
 ### Store Tools
