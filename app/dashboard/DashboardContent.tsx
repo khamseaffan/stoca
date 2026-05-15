@@ -63,8 +63,8 @@ function StatCard({
         </div>
         <div className="min-w-0">
           <p className="text-2xl font-bold text-secondary-900 leading-tight">{value}</p>
-          <p className="text-sm text-secondary-500 truncate">{label}</p>
-          {subtitle && <p className="text-xs text-secondary-400 truncate">{subtitle}</p>}
+          <p className="text-xs text-secondary-500">{label}</p>
+          {subtitle && <p className="text-xs text-secondary-400">{subtitle}</p>}
         </div>
       </div>
     </Card>
@@ -327,17 +327,17 @@ export function DashboardContent({ storeName, stats, analytics }: DashboardConte
           {/* ── Row 1: Stat cards ── */}
           <section>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-6">
-              <StatCard label="Today's Revenue" value={formatPrice(stats.todayRevenue)} icon={DollarSign} color="text-green-600 bg-green-100" />
-              <StatCard label="Today's Orders" value={stats.todayOrders.toString()} icon={ShoppingCart} color="text-blue-600 bg-blue-100" />
+              <StatCard label="Revenue" value={formatPrice(stats.todayRevenue)} icon={DollarSign} color="text-green-600 bg-green-100" subtitle="today" />
+              <StatCard label="Orders" value={stats.todayOrders.toString()} icon={ShoppingCart} color="text-blue-600 bg-blue-100" subtitle="today" />
               <StatCard label="Pending" value={stats.pendingOrders.toString()} icon={Clock} color="text-amber-600 bg-amber-100" />
               <StatCard label="Low Stock" value={stats.lowStockCount.toString()} icon={AlertTriangle} color="text-red-600 bg-red-100" />
-              <StatCard label="Avg Order Value" value={formatPrice(stats.avgOrderValue)} icon={TrendingUp} color="text-purple-600 bg-purple-100" />
+              <StatCard label="Avg Order" value={formatPrice(stats.avgOrderValue)} icon={TrendingUp} color="text-purple-600 bg-purple-100" />
               <StatCard
                 label="Fulfillment"
                 value={formatMinutes(stats.avgFulfillmentMinutes)}
                 icon={Timer}
                 color="text-indigo-600 bg-indigo-100"
-                subtitle="avg completion time"
+                subtitle="avg time"
               />
             </div>
           </section>
