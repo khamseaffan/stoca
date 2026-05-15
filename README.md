@@ -104,11 +104,13 @@ npm run db:push          # Push schema changes to DB
 
 All accounts use password: `password123`
 
-**Store Owner** (owns all 6 stores):
+**Store Owners:**
 
-| Email | Role |
+| Email | Stores |
 |---|---|
-| `demo@stoca.local` | Store Owner |
+| `demo@stoca.local` | Park Slope Fresh Market, Cobble Hill Bakehouse, Greenpoint Coffee Roasters |
+| `sarah@demo.com` | Atlantic Ave Deli & Provisions, Stems Brooklyn |
+| `marcus@demo.com` | Staubitz Meats |
 
 **Customers:**
 

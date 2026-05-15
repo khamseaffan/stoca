@@ -352,11 +352,21 @@ const CUSTOMERS = [
   { first_name: 'Olivia', last_name: 'Bennett', email: 'olivia.b@example.com' },
 ]
 
-// Store owner
-const OWNER = {
-  first_name: 'Demo',
-  last_name: 'Owner',
-  email: 'demo@stoca.local',
+// Store owners
+const OWNERS = [
+  { id: 'a0a0a0a0-0000-0000-0000-000000000001', first_name: 'Demo', last_name: 'Owner', email: 'demo@stoca.local' },
+  { id: 'a0a0a0a0-0000-0000-0000-000000000002', first_name: 'Sarah', last_name: 'Martinez', email: 'sarah@demo.com' },
+  { id: 'a0a0a0a0-0000-0000-0000-000000000003', first_name: 'Marcus', last_name: 'Johnson', email: 'marcus@demo.com' },
+]
+
+// Which owner runs which stores (by index into STORES array)
+const STORE_OWNER_MAP: Record<number, number> = {
+  0: 0, // Park Slope Fresh Market → demo@stoca.local
+  1: 0, // Cobble Hill Bakehouse → demo@stoca.local
+  2: 0, // Greenpoint Coffee Roasters → demo@stoca.local
+  3: 1, // Atlantic Ave Deli → sarah@demo.com
+  4: 1, // Stems Brooklyn → sarah@demo.com
+  5: 2, // Staubitz Meats → marcus@demo.com
 }
 
 const ORDER_STATUSES = ['COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'DELIVERED', 'DELIVERED', 'PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'CANCELLED']
@@ -388,21 +398,20 @@ async function main() {
   const passwordHash = '$2a$10$CiYEmCLXv0QOdvqLr2r9L.OsbMf4zjrdQEB4uDqJ.W1eIGTRQ8Lfy'
   const instanceId = '00000000-0000-0000-0000-000000000000'
 
-  // Create owner via auth.users (trigger creates profile)
-  console.log('Creating owner auth user...')
-  const ownerId = 'a0a0a0a0-0000-0000-0000-000000000001'
-  await prisma.$executeRawUnsafe(`
-    INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change_token_current, reauthentication_token, email_change, phone_change, phone_change_token)
-    VALUES ($1::uuid, $2::uuid, $3, $4, NOW(), $5::jsonb, 'authenticated', 'authenticated', NOW(), NOW(), '', '', '', '', '', '', '', '')
-  `, ownerId, instanceId, OWNER.email, passwordHash,
-    JSON.stringify({ first_name: OWNER.first_name, last_name: OWNER.last_name, role: 'STORE_OWNER' })
-  )
-  await prisma.$executeRawUnsafe(`
-    INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-    VALUES ($1::uuid, $1::uuid, $2, $3::jsonb, 'email', NOW(), NOW(), NOW())
-  `, ownerId, OWNER.email, JSON.stringify({ sub: ownerId, email: OWNER.email }))
-
-  const owner = { id: ownerId }
+  // Create owner auth users (trigger creates profiles)
+  console.log('Creating owner auth users...')
+  for (const o of OWNERS) {
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change_token_current, reauthentication_token, email_change, phone_change, phone_change_token)
+      VALUES ($1::uuid, $2::uuid, $3, $4, NOW(), $5::jsonb, 'authenticated', 'authenticated', NOW(), NOW(), '', '', '', '', '', '', '', '')
+    `, o.id, instanceId, o.email, passwordHash,
+      JSON.stringify({ first_name: o.first_name, last_name: o.last_name, role: 'STORE_OWNER' })
+    )
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+      VALUES ($1::uuid, $1::uuid, $2, $3::jsonb, 'email', NOW(), NOW(), NOW())
+    `, o.id, o.email, JSON.stringify({ sub: o.id, email: o.email }))
+  }
 
   // Create customer auth users (trigger creates profiles)
   console.log('Creating customer auth users...')
@@ -425,12 +434,15 @@ async function main() {
 
   // Create stores and products
   let totalOrders = 0
-  for (const storeData of STORES) {
-    console.log(`\nCreating store: ${storeData.name}`)
+  for (let storeIdx = 0; storeIdx < STORES.length; storeIdx++) {
+    const storeData = STORES[storeIdx]
+    const ownerIdx = STORE_OWNER_MAP[storeIdx] ?? 0
+    const storeOwner = OWNERS[ownerIdx]
+    console.log(`\nCreating store: ${storeData.name} (owner: ${storeOwner.email})`)
 
     const store = await prisma.stores.create({
       data: {
-        owner_id: owner.id,
+        owner_id: storeOwner.id,
         name: storeData.name,
         slug: storeData.slug,
         store_type: storeData.store_type,
