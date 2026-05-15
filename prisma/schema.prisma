@@ -99,6 +99,8 @@ model store_products {
   order_items         order_items[]
 
   @@unique([store_id, global_product_id])
+  @@index([store_id, is_available])
+  @@index([store_id, is_available, name])
 }
 
 model cart_items {
@@ -138,6 +140,10 @@ model orders {
   store             stores        @relation(fields: [store_id], references: [id])
   order_items       order_items[]
   payments          payments[]
+
+  @@index([store_id, status, created_at])
+  @@index([store_id, created_at])
+  @@index([user_id])
 }
 
 model order_items {
@@ -151,6 +157,8 @@ model order_items {
   created_at       DateTime        @default(now()) @db.Timestamptz(6)
   order            orders          @relation(fields: [order_id], references: [id], onDelete: Cascade)
   store_product    store_products? @relation(fields: [store_product_id], references: [id], onDelete: SetNull)
+
+  @@index([order_id])
 }
 
 model payments {
@@ -179,6 +187,8 @@ model promotions {
   created_at       DateTime @default(now()) @db.Timestamptz(6)
   updated_at       DateTime @default(now()) @updatedAt @db.Timestamptz(6)
   store            stores   @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id, is_active])
 }
 
 model ai_conversations {
@@ -191,4 +201,6 @@ model ai_conversations {
   image_url  String?
   created_at DateTime @default(now()) @db.Timestamptz(6)
   store      stores   @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@index([store_id, session_id])
 }

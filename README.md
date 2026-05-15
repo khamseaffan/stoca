@@ -62,8 +62,8 @@ supabase start
 # 2. Install dependencies and generate Prisma client
 npm install              # postinstall runs prisma generate automatically
 
-# 3. Seed the database (optional — adds sample stores, products, orders)
-supabase db reset        # runs migrations + seed.sql
+# 3. Seed the database (adds Brooklyn stores, products, 200+ orders)
+npx prisma db seed
 
 # 4. Start Next.js dev server
 npm run dev
@@ -102,11 +102,41 @@ npm run db:push          # Push schema changes to DB
 
 ### Demo Accounts (from seed data)
 
-| Email | Password | Role |
+All accounts use password: `password123`
+
+**Store Owners:**
+
+| Email | Stores |
+|---|---|
+| `demo@stoca.local` | Park Slope Fresh Market, Cobble Hill Bakehouse, Greenpoint Coffee Roasters |
+| `sarah@demo.com` | Atlantic Ave Deli & Provisions, Stems Brooklyn |
+| `marcus@demo.com` | Staubitz Meats |
+
+**Customers:**
+
+| Email | Name |
+|---|---|
+| `sarah.chen@example.com` | Sarah Chen |
+| `marcus.w@example.com` | Marcus Williams |
+| `elena.r@example.com` | Elena Rodriguez |
+| `james.ob@example.com` | James O'Brien |
+| `priya.p@example.com` | Priya Patel |
+| `david.kim@example.com` | David Kim |
+| `aaliyah.j@example.com` | Aaliyah Johnson |
+| `michael.r@example.com` | Michael Rossi |
+| `yuki.t@example.com` | Yuki Tanaka |
+| `olivia.b@example.com` | Olivia Bennett |
+
+**Seeded Stores** (Brooklyn, NYC):
+
+| Store | Type | Address |
 |---|---|---|
-| `sarah@demo.com` | `password123` | Store Owner (Fresh Market) |
-| `marcus@demo.com` | `password123` | Store Owner (Golden Crust Bakery) |
-| `emily@demo.com` | `password123` | Customer |
+| Park Slope Fresh Market | Grocery | 267 7th Ave, 11215 |
+| Cobble Hill Bakehouse | Bakery | 182 Court St, 11201 |
+| Greenpoint Coffee Roasters | Coffee | 98 Franklin St, 11222 |
+| Atlantic Ave Deli & Provisions | Deli | 345 Atlantic Ave, 11217 |
+| Stems Brooklyn | Flower Shop | 158 N 4th St, 11211 |
+| Staubitz Meats | Butcher | 222 Court St, 11201 |
 
 ## Documentation
 

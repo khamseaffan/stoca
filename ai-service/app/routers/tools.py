@@ -206,7 +206,8 @@ async def update_price(
     result = await db.execute(
         text(
             "SELECT id, name, price FROM store_products "
-            "WHERE store_id = :sid AND name ILIKE :name AND is_available = true LIMIT 5"
+            "WHERE store_id = :sid AND name ILIKE :name AND is_available = true "
+            "LIMIT 5 FOR UPDATE"
         ),
         {"sid": store.id, "name": f"%{body.product_name}%"},
     )
@@ -349,7 +350,8 @@ async def update_stock(
     result = await db.execute(
         text(
             "SELECT id, name, quantity FROM store_products "
-            "WHERE store_id = :sid AND name ILIKE :name AND is_available = true LIMIT 5"
+            "WHERE store_id = :sid AND name ILIKE :name AND is_available = true "
+            "LIMIT 5 FOR UPDATE"
         ),
         {"sid": store.id, "name": f"%{body.product_name}%"},
     )
@@ -617,7 +619,7 @@ async def update_order_status(
         return {"success": False, "result": f"Invalid status. Valid: {sorted(valid_statuses)}"}
 
     result = await db.execute(
-        text("SELECT id, status FROM orders WHERE id = :oid AND store_id = :sid"),
+        text("SELECT id, status FROM orders WHERE id = :oid AND store_id = :sid FOR UPDATE"),
         {"oid": body.order_id, "sid": store.id},
     )
     order = result.fetchone()

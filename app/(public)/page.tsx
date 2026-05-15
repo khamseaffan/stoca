@@ -1,20 +1,51 @@
 import Link from 'next/link'
-import { Search, ShoppingCart, Package } from 'lucide-react'
+import {
+  Search,
+  ShoppingCart,
+  Package,
+  ShoppingBasket,
+  CakeSlice,
+  Coffee,
+  Store,
+  Beef,
+  Pill,
+  Sandwich,
+  Flower2,
+  PawPrint,
+} from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/Button'
 import { StoreCard } from '@/components/commerce/StoreCard'
 import type { StoreType } from '@/types'
 
+const categories = [
+  { label: 'Grocery', type: 'GROCERY', icon: ShoppingBasket },
+  { label: 'Bakery', type: 'BAKERY', icon: CakeSlice },
+  { label: 'Coffee', type: 'SPECIALTY_FOOD', icon: Coffee },
+  { label: 'Convenience', type: 'CONVENIENCE', icon: Store },
+  { label: 'Butcher', type: 'BUTCHER', icon: Beef },
+  { label: 'Pharmacy', type: 'PHARMACY', icon: Pill },
+  { label: 'Deli', type: 'DELI', icon: Sandwich },
+  { label: 'Flower Shop', type: 'FLOWER', icon: Flower2 },
+  { label: 'Pet Store', type: 'PET', icon: PawPrint },
+]
+
 export default async function HomePage() {
   const storeData = await prisma.stores.findMany({
     where: { is_active: true },
     take: 6,
-    select: { id: true, name: true, slug: true, store_type: true, city: true, state: true, logo_url: true },
+    select: {
+      id: true, name: true, slug: true, store_type: true,
+      city: true, state: true, logo_url: true,
+      pickup_enabled: true, delivery_enabled: true, delivery_fee: true, operating_hours: true,
+    },
   })
 
   const stores = storeData.map((s) => ({
     ...s,
     store_type: s.store_type as StoreType,
+    delivery_fee: Number(s.delivery_fee),
+    operating_hours: (s.operating_hours ?? {}) as Record<string, { open: string; close: string }>,
   }))
 
   return (
@@ -34,25 +65,8 @@ export default async function HomePage() {
               powered by AI.
             </p>
 
-            {/* Search Bar */}
-            <form
-              action="/search"
-              method="GET"
-              className="mx-auto mt-10 max-w-xl"
-            >
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-secondary-400" />
-                <input
-                  type="text"
-                  name="q"
-                  placeholder="Search stores and products..."
-                  className="w-full rounded-full border border-secondary-300 bg-white py-3.5 pl-12 pr-4 text-base text-secondary-900 placeholder:text-secondary-400 shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-                />
-              </div>
-            </form>
-
             {/* CTA Buttons */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link href="/search">
                 <Button variant="primary" size="lg">
                   Browse Stores
@@ -76,6 +90,37 @@ export default async function HomePage() {
           className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary-50 blur-3xl"
           aria-hidden="true"
         />
+      </section>
+
+      {/* Category Browsing Section */}
+      <section className="bg-white py-12 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl font-bold text-secondary-900 sm:text-3xl">
+              Browse by Category
+            </h2>
+            <p className="mt-2 text-secondary-600">
+              Find exactly what you need from local stores
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
+            {categories.map((cat) => (
+              <Link
+                key={cat.type + cat.label}
+                href={`/search?type=${cat.type}`}
+                className="group flex flex-col items-center gap-2 rounded-xl border border-secondary-200 bg-white p-4 text-center shadow-sm transition-all hover:border-primary-300 hover:shadow-md"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50 transition-colors group-hover:bg-primary-100">
+                  <cat.icon className="h-6 w-6 text-primary-600" />
+                </div>
+                <span className="text-xs font-medium text-secondary-700 sm:text-sm">
+                  {cat.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Featured Stores Section */}

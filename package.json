@@ -27,9 +27,11 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
+    "recharts": "^2.15.0",
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "tsx": "^4.19.0",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^22",
     "@types/react": "^19",
