@@ -30,9 +30,6 @@
     "recharts": "^2.15.0",
     "remark-gfm": "^4.0.1"
   },
-  "prisma": {
-    "seed": "npx tsx prisma/seed.ts"
-  },
   "devDependencies": {
     "tsx": "^4.19.0",
     "@tailwindcss/postcss": "^4.2.0",
