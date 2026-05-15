@@ -380,34 +380,47 @@ async function main() {
   await prisma.global_products.deleteMany()
   await prisma.stores.deleteMany()
   await prisma.profiles.deleteMany()
+  // Also clear auth users we previously seeded
+  await prisma.$executeRawUnsafe(`DELETE FROM auth.identities WHERE user_id::text LIKE 'a0a0a0a0-%'`)
+  await prisma.$executeRawUnsafe(`DELETE FROM auth.users WHERE id::text LIKE 'a0a0a0a0-%'`)
 
-  // Create owner profile
-  console.log('Creating owner profile...')
-  const owner = await prisma.profiles.create({
-    data: {
-      id: '00000000-0000-0000-0000-000000000001',
-      email: OWNER.email,
-      first_name: OWNER.first_name,
-      last_name: OWNER.last_name,
-      role: 'STORE_OWNER',
-    },
-  })
+  // bcrypt hash for "password123"
+  const passwordHash = '$2a$10$CiYEmCLXv0QOdvqLr2r9L.OsbMf4zjrdQEB4uDqJ.W1eIGTRQ8Lfy'
+  const instanceId = '00000000-0000-0000-0000-000000000000'
 
-  // Create customer profiles
-  console.log('Creating customer profiles...')
-  const customers = []
+  // Create owner via auth.users (trigger creates profile)
+  console.log('Creating owner auth user...')
+  const ownerId = 'a0a0a0a0-0000-0000-0000-000000000001'
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change_token_current, reauthentication_token, email_change, phone_change, phone_change_token)
+    VALUES ($1::uuid, $2::uuid, $3, $4, NOW(), $5::jsonb, 'authenticated', 'authenticated', NOW(), NOW(), '', '', '', '', '', '', '', '')
+  `, ownerId, instanceId, OWNER.email, passwordHash,
+    JSON.stringify({ first_name: OWNER.first_name, last_name: OWNER.last_name, role: 'STORE_OWNER' })
+  )
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+    VALUES ($1::uuid, $1::uuid, $2, $3::jsonb, 'email', NOW(), NOW(), NOW())
+  `, ownerId, OWNER.email, JSON.stringify({ sub: ownerId, email: OWNER.email }))
+
+  const owner = { id: ownerId }
+
+  // Create customer auth users (trigger creates profiles)
+  console.log('Creating customer auth users...')
+  const customers: { id: string }[] = []
   for (let i = 0; i < CUSTOMERS.length; i++) {
     const c = CUSTOMERS[i]
-    const customer = await prisma.profiles.create({
-      data: {
-        id: `00000000-0000-0000-0000-00000000010${i}`,
-        email: c.email,
-        first_name: c.first_name,
-        last_name: c.last_name,
-        role: 'CUSTOMER',
-      },
-    })
-    customers.push(customer)
+    const customerId = `a0a0a0a0-0000-0000-0000-00000000010${i}`
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, role, aud, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change_token_current, reauthentication_token, email_change, phone_change, phone_change_token)
+      VALUES ($1::uuid, $2::uuid, $3, $4, NOW(), $5::jsonb, 'authenticated', 'authenticated', NOW(), NOW(), '', '', '', '', '', '', '', '')
+    `, customerId, instanceId, c.email, passwordHash,
+      JSON.stringify({ first_name: c.first_name, last_name: c.last_name, role: 'CUSTOMER' })
+    )
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+      VALUES ($1::uuid, $1::uuid, $2, $3::jsonb, 'email', NOW(), NOW(), NOW())
+    `, customerId, c.email, JSON.stringify({ sub: customerId, email: c.email }))
+    customers.push({ id: customerId })
   }
 
   // Create stores and products
