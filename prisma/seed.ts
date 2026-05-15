@@ -390,9 +390,12 @@ async function main() {
   await prisma.global_products.deleteMany()
   await prisma.stores.deleteMany()
   await prisma.profiles.deleteMany()
-  // Also clear auth users we previously seeded
-  await prisma.$executeRawUnsafe(`DELETE FROM auth.identities WHERE user_id::text LIKE 'a0a0a0a0-%'`)
-  await prisma.$executeRawUnsafe(`DELETE FROM auth.users WHERE id::text LIKE 'a0a0a0a0-%'`)
+  // Clear auth users from previous seeds (ours + old supabase/seed.sql)
+  const seedEmails = [...OWNERS, ...CUSTOMERS].map((u) => u.email)
+  for (const email of seedEmails) {
+    await prisma.$executeRawUnsafe(`DELETE FROM auth.identities WHERE user_id IN (SELECT id FROM auth.users WHERE email = $1)`, email)
+    await prisma.$executeRawUnsafe(`DELETE FROM auth.users WHERE email = $1`, email)
+  }
 
   // bcrypt hash for "password123"
   const passwordHash = '$2a$10$CiYEmCLXv0QOdvqLr2r9L.OsbMf4zjrdQEB4uDqJ.W1eIGTRQ8Lfy'
