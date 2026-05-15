@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
 import { NextRequest, NextResponse } from 'next/server'
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8090'
@@ -22,12 +23,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    if (!rateLimit(`image:${user.id}`, 5, 60_000)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     const formData = await request.formData()
     const image = formData.get('image') as File | null
     const storeId = formData.get('storeId') as string | null
 
     if (!image || !storeId) {
       return NextResponse.json({ error: 'Missing image or storeId' }, { status: 400 })
+    }
+
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+    const MAX_SIZE = 10 * 1024 * 1024 // 10MB
+
+    if (!ALLOWED_TYPES.includes(image.type)) {
+      return NextResponse.json({ error: 'Invalid file type. Allowed: JPEG, PNG, WebP' }, { status: 400 })
+    }
+
+    if (image.size > MAX_SIZE) {
+      return NextResponse.json({ error: 'File too large. Maximum size: 10MB' }, { status: 400 })
     }
 
     // Verify the user owns this store
@@ -43,7 +59,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload image to Supabase Storage
-    const fileExt = image.name.split('.').pop() || 'jpg'
+    const EXT_MAP: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+    const fileExt = EXT_MAP[image.type] ?? 'jpg'
     const fileName = `${storeId}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`
 
     const arrayBuffer = await image.arrayBuffer()

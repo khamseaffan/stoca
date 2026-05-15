@@ -11,6 +11,15 @@ from app.database import get_db
 
 logger = logging.getLogger(__name__)
 
+_http_client: httpx.AsyncClient | None = None
+
+
+def _get_http_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(timeout=10.0)
+    return _http_client
+
 
 @dataclass
 class Store:
@@ -48,15 +57,14 @@ async def get_verified_store(
 
     # Validate token via Supabase Auth API
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                f"{settings.supabase_url}/auth/v1/user",
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "apikey": settings.supabase_service_role_key,
-                },
-                timeout=10.0,
-            )
+        client = _get_http_client()
+        resp = await client.get(
+            f"{settings.supabase_url}/auth/v1/user",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "apikey": settings.supabase_service_role_key,
+            },
+        )
 
         if resp.status_code != 200:
             logger.warning("Supabase auth validation failed: %s", resp.text)

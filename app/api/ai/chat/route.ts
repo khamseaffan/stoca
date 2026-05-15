@@ -3,6 +3,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { rateLimit } from '@/lib/rate-limit'
 import { NextRequest } from 'next/server'
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8090'
@@ -107,6 +108,10 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return new Response('Unauthorized', { status: 401 })
+    }
+
+    if (!rateLimit(`chat:${user.id}`, 20, 60_000)) {
+      return new Response('Too many requests', { status: 429 })
     }
 
     // Verify the user owns this store
