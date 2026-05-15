@@ -54,6 +54,9 @@ docker-compose.override.yml
 *.log
 logs/
 
+# Overmind
+.overmind.sock
+
 # OS
 Thumbs.db
 CLAUDE.md
