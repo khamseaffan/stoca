@@ -5,6 +5,7 @@ import { Package, ArrowLeft, MapPin, ShoppingBag, Truck } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
+import { firstRenderableImageUrl } from '@/lib/images'
 import { formatPrice } from '@/lib/utils'
 import type { StoreProduct, Store, StoreType } from '@/types'
 import { AddToCartButton } from './AddToCartButton'
@@ -77,6 +78,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     !isOutOfStock &&
     typedProduct.quantity > 0 &&
     typedProduct.quantity <= typedProduct.low_stock_threshold
+  const imageUrl = firstRenderableImageUrl(typedProduct.image_urls)
 
   function formatStoreType(storeType: string): string {
     return storeType
@@ -99,9 +101,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Left Column: Image */}
         <div className="aspect-square overflow-hidden rounded-2xl bg-secondary-100">
-          {typedProduct.image_urls.length > 0 ? (
+          {imageUrl ? (
             <Image
-              src={typedProduct.image_urls[0]}
+              src={imageUrl}
               alt={typedProduct.name}
               width={700}
               height={700}

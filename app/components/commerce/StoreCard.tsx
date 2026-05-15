@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin, Truck, ShoppingBag } from 'lucide-react'
+import { isRenderableImageUrl } from '@/lib/images'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 import type { Store, StoreType } from '@/types'
@@ -82,6 +83,7 @@ export function StoreCard({ store }: StoreCardProps) {
   const open = isStoreOpen(store.operating_hours)
   const hasLocation = store.city || store.state
   const hasFulfillment = store.pickup_enabled || store.delivery_enabled
+  const logoUrl = isRenderableImageUrl(store.logo_url) ? store.logo_url : null
 
   return (
     <Link
@@ -103,9 +105,9 @@ export function StoreCard({ store }: StoreCardProps) {
             accent.logoBg,
           )}
         >
-          {store.logo_url ? (
+          {logoUrl ? (
             <Image
-              src={store.logo_url}
+              src={logoUrl}
               alt={store.name}
               width={48}
               height={48}

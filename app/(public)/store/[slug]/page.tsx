@@ -3,6 +3,7 @@ import { MapPin, Phone, Clock, Truck, ShoppingBag, DollarSign, Package } from 'l
 import { prisma } from '@/lib/prisma'
 import { Badge } from '@/components/ui/Badge'
 import { cn, getInitials, formatPrice } from '@/lib/utils'
+import { isRenderableImageUrl } from '@/lib/images'
 import type { Store, StoreProduct, StoreType } from '@/types'
 import { StoreProducts } from './StoreProducts'
 
@@ -184,16 +185,22 @@ export default async function StorePage({ params }: StorePageProps) {
     : typedStore.delivery_fee === 0
       ? 'Free delivery'
       : formatPrice(typedStore.delivery_fee)
+  const bannerUrl = isRenderableImageUrl(typedStore.banner_url)
+    ? typedStore.banner_url
+    : null
+  const logoUrl = isRenderableImageUrl(typedStore.logo_url)
+    ? typedStore.logo_url
+    : null
 
   return (
     <div>
       {/* Hero Banner */}
       <div className="relative h-56 sm:h-64 lg:h-72 overflow-hidden">
         {/* Background: banner image with overlay, or gradient with store type texture */}
-        {typedStore.banner_url ? (
+        {bannerUrl ? (
           <>
             <img
-              src={typedStore.banner_url}
+              src={bannerUrl}
               alt=""
               className="absolute inset-0 h-full w-full object-cover"
             />
@@ -214,9 +221,9 @@ export default async function StorePage({ params }: StorePageProps) {
             <div className="flex items-end gap-4">
               {/* Logo - 80px */}
               <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-white/20 bg-white/10 shadow-lg backdrop-blur-sm">
-                {typedStore.logo_url ? (
+                {logoUrl ? (
                   <img
-                    src={typedStore.logo_url}
+                    src={logoUrl}
                     alt={typedStore.name}
                     className="h-full w-full object-cover"
                   />
